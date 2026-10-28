@@ -1,0 +1,40 @@
+# ===== Unity 生成目录（可重新生成，禁止提交） =====
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+MemoryCaptures/
+sysinfo.txt
+
+# ===== 重要：保留 .meta 文件（Unity 资源依赖），不要忽略 =====
+
+# ===== IDE / 编辑器 =====
+.vs/
+.idea/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# ===== OS / 系统 =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== WorkBuddy 内部运行时数据（非游戏产物，不入库） =====
+.workbuddy/
+
+# ===== 本地资源商店缓存 =====
+AssetStoreTools/

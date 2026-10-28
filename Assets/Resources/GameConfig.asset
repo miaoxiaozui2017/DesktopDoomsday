@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09cba8bef0246114f838d954034ac5ed, type: 3}
+  m_Name: GameConfig
+  m_EditorClassIdentifier: 
+  vehicles: []
+  zones: []
+  weathers: []
+  resources:
+    initialFood: 0
+    initialWater: 0
+    initialMedicine: 0
+    initialFuel: 0
+    initialParts: 0
+    baseChestChance: 0.05
+    dropWeights: []
+  survivor:
+    hungerDrainPerSec: 0
+    thirstDrainPerSec: 0
+    healthDrainPerSec: 0
+    weakenThreshold: 0
+    weakenedDrainMultiplier: 1.3
+    recoveryPerSec: 0
+    recoveryDurationSec: 60
+  dungeons: []
+  achievements: []
