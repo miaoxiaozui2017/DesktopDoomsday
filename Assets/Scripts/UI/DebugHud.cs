@@ -106,9 +106,10 @@ namespace DesktopDoomsday.UI
                 $"FOOD {gs.food}  WATER {gs.water}  MED {gs.medicine}\n" +
                 $"FUEL {gs.fuel}  PARTS {gs.parts}  BLUE {gs.blueprintFragments}\n" +
                 $"CHESTS  {_chestCount}\n" +
+                $"UPG     {UpgradeCostLine(gs)}\n" +
                 $"PLAY    {gs.playTimeSeconds:F0}s\n" +
                 $"FPS     {_fps:F1}\n" +
-                $"[~] toggle  [U] upgrade  [P] +parts  [B] +blue  (DebugHud)";
+                $"[~] toggle  [U] upgrade  [P] +parts  [B] +blue  [K] 小人  [V] 车辆  (DebugHud)";
 
             GUI.Box(new Rect(8, 8, 300, 320), "DEBUG HUD");
             GUI.Label(new Rect(18, 30, 280, 285), text);
@@ -129,6 +130,22 @@ namespace DesktopDoomsday.UI
                 case 2: return "冻原";
                 default: return "循环";
             }
+        }
+
+        /// <summary>显示两条改装线「下一级」所需零件/蓝图，方便知道多少 P/B 可升级。</summary>
+        private static string UpgradeCostLine(GameState gs)
+        {
+            var vs = ServiceLocator.Get<VehicleSystem>();
+            if (vs == null) return "(无 VehicleSystem)";
+            var sb = new System.Text.StringBuilder();
+            for (int t = 0; t < 2; t++)
+            {
+                if (vs.GetUpgradeCost(gs, gs.currentVehicle, t, out int pc, out int fc, out bool mx))
+                    sb.Append($"T{t}:{pc}件+{fc}蓝  ");
+                else if (mx)
+                    sb.Append($"T{t}:满级  ");
+            }
+            return sb.ToString().TrimEnd();
         }
     }
 }

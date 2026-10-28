@@ -113,6 +113,8 @@ namespace DesktopDoomsday.Core
             if (FindObjectOfType<GameView>() == null) gameObject.AddComponent<GameView>();
             if (FindObjectOfType<TechHud>() == null) gameObject.AddComponent<TechHud>();
             if (FindObjectOfType<FastForward>() == null) gameObject.AddComponent<FastForward>();
+            if (FindObjectOfType<SurvivorInfoPanel>() == null) gameObject.AddComponent<SurvivorInfoPanel>();
+            if (FindObjectOfType<VehicleInfoPanel>() == null) gameObject.AddComponent<VehicleInfoPanel>();
             EnsurePixelPerfect();
         }
 

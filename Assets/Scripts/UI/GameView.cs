@@ -27,14 +27,17 @@ namespace DesktopDoomsday.UI
         [Header("天气（0 晴 / 1 暴雨 / 2 沙暴 / 3 极寒）")]
         public Sprite[] weatherIcon = new Sprite[4];
 
-        private SpriteRenderer _bg, _roadA, _roadB, _vehicle, _survivor, _chest, _wIcon;
+        private SpriteRenderer _bg, _vehicle, _survivor, _chest, _wIcon;
+        private SpriteRenderer[] _roadTiles;
+        private float _roadTileW = 2.56f;
+        private const int RoadCount = 5;
+
         private Vector3 _vehBase, _survBase, _chestBase;
         private float _animT;
         private int _frame;
         private float _chestT = -1f;
         private const float ChestLife = 0.9f;
         private Color _zoneTint = Color.white, _weatherTint = Color.white;
-        private float _roadWidth = 2.56f;
 
         private GameState State => ServiceLocator.Get<GameState>();
 
@@ -72,6 +75,10 @@ namespace DesktopDoomsday.UI
                 cam.transform.position = new Vector3(0.6f, 0.9f, -10f);
             }
 
+            // 背景铺满相机视野（消除四周黑边），天气图标定位到真正的右上角
+            FitBackground(cam);
+            PlaceWeatherIcon(cam);
+
             var s = State;
             if (s != null)
             {
@@ -84,23 +91,52 @@ namespace DesktopDoomsday.UI
 
         private void BuildScene()
         {
-            _roadWidth = (zoneRoad != null && zoneRoad.Length > 0 && zoneRoad[0] != null)
+            _roadTileW = (zoneRoad != null && zoneRoad.Length > 0 && zoneRoad[0] != null)
                 ? zoneRoad[0].bounds.size.x : 2.56f;
 
             _bg = Make("BG", First(zoneBg), -20, new Vector3(0f, 1.1f, 0f), Vector3.one);
-            _roadA = Make("RoadA", First(zoneRoad), -10, new Vector3(0f, -0.35f, 0f), Vector3.one);
-            _roadB = Make("RoadB", First(zoneRoad), -10, new Vector3(_roadWidth, -0.35f, 0f), Vector3.one);
+
+            // 多块路带平铺，保证横向铺满相机视野
+            _roadTiles = new SpriteRenderer[RoadCount];
+            for (int i = 0; i < RoadCount; i++)
+            {
+                _roadTiles[i] = Make("Road" + i, First(zoneRoad), -10,
+                    new Vector3(i * _roadTileW, -0.35f, 0f), Vector3.one);
+            }
 
             _chest = Make("Chest", chestSprite, 5, new Vector3(1.1f, 0.3f, 0f), Vector3.one);
             if (_chest != null) { _chest.enabled = false; _chestBase = _chest.transform.localPosition; }
 
-            _vehicle = Make("Vehicle", VehicleSprite(0, 0), 10, new Vector3(0f, 0.35f, 0f), Vector3.one);
+            // 车辆：抬高到路面之上（轮子落在路面上，不再"陷"进地面）
+            _vehicle = Make("Vehicle", VehicleSprite(0, 0), 10, new Vector3(0f, 1.05f, 0f), Vector3.one);
             if (_vehicle != null) _vehBase = _vehicle.transform.localPosition;
 
-            _survivor = Make("Survivor", survivorIdle, 11, new Vector3(-1.35f, 0.3f, 0f), Vector3.one);
+            // 小人：明显站在车辆左侧的地面上，缩小比例，加走路摆动 —— 解决"贴在车窗"的观感
+            _survivor = Make("Survivor", survivorIdle, 11, new Vector3(-1.9f, 0.69f, 0f), new Vector3(0.55f, 0.55f, 1f));
             if (_survivor != null) _survBase = _survivor.transform.localPosition;
 
-            _wIcon = Make("Weather", First(weatherIcon), 30, new Vector3(1.7f, 1.95f, 0f), Vector3.one * 0.45f);
+            _wIcon = Make("Weather", First(weatherIcon), 30, new Vector3(1.7f, 1.95f, 0f), Vector3.one * 0.8f);
+        }
+
+        private void FitBackground(Camera cam)
+        {
+            if (_bg == null || _bg.sprite == null || cam == null) return;
+            float vh = cam.orthographicSize * 2f;
+            float vw = vh * cam.aspect;
+            var native = _bg.sprite.bounds.size;
+            float s = Mathf.Max(vw / native.x, vh / native.y) * 1.05f; // cover + 余量
+            _bg.transform.localScale = new Vector3(s, s, 1f);
+            _bg.transform.localPosition = new Vector3(cam.transform.position.x, cam.transform.position.y, 0f);
+        }
+
+        private void PlaceWeatherIcon(Camera cam)
+        {
+            if (_wIcon == null || cam == null) return;
+            float vh = cam.orthographicSize * 2f;
+            float vw = vh * cam.aspect;
+            float right = cam.transform.position.x + vw / 2f;
+            float top = cam.transform.position.y + vh / 2f;
+            _wIcon.transform.localPosition = new Vector3(right - 0.65f, top - 0.65f, 0f);
         }
 
         private Sprite First(Sprite[] a) => (a != null && a.Length > 0) ? a[0] : null;
@@ -126,8 +162,8 @@ namespace DesktopDoomsday.UI
 
             // 滚动公路（视觉速度放大，天气减速肉眼可见）
             float step = s.currentSpeedKmPerTick * 30f * dt;
-            ScrollRoad(_roadA, step);
-            ScrollRoad(_roadB, step);
+            for (int i = 0; i < _roadTiles.Length; i++)
+                ScrollRoad(_roadTiles[i], step);
 
             // 帧动画（轮子 / 走路）
             if (moving)
@@ -149,7 +185,9 @@ namespace DesktopDoomsday.UI
                 var p = _survBase;
                 if (moving)
                 {
-                    p.y += Mathf.Abs(Mathf.Sin(Time.time * 9f)) * 0.04f;
+                    // 左右轻摆 + 上下微跳，强化"跟在车旁走路"的观感
+                    p.x += Mathf.Sin(Time.time * 6f) * 0.05f;
+                    p.y += Mathf.Abs(Mathf.Sin(Time.time * 9f)) * 0.02f;
                     _survivor.sprite = _frame == 0 ? survivorWalk0 : survivorWalk1;
                 }
                 else _survivor.sprite = survivorIdle;
@@ -175,8 +213,8 @@ namespace DesktopDoomsday.UI
         {
             if (road == null) return;
             road.transform.localPosition += Vector3.left * step;
-            if (road.transform.localPosition.x <= -_roadWidth)
-                road.transform.localPosition += Vector3.right * (_roadWidth * 2f);
+            if (road.transform.localPosition.x <= -_roadTileW)
+                road.transform.localPosition += Vector3.right * (_roadTileW * RoadCount);
         }
 
         private Sprite VehicleSprite(int kind, int f)
@@ -207,7 +245,7 @@ namespace DesktopDoomsday.UI
             _weatherTint = WeatherTint(w);
             if (_bg != null) _bg.color = _zoneTint * _weatherTint;
             if (_wIcon != null && weatherIcon != null && (int)w < weatherIcon.Length)
-                _wIcon.sprite = weatherIcon[(int)w];
+                _wIcon.sprite = weatherIcon[(int)w]; // 天气图标始终显示（晴/雨/沙/雪）
         }
 
         private void ApplyZone(int idx)
@@ -215,8 +253,9 @@ namespace DesktopDoomsday.UI
             idx = Mathf.Clamp(idx, 0, 2);
             _zoneTint = ZoneTint(idx);
             if (_bg != null && zoneBg != null && idx < zoneBg.Length) _bg.sprite = zoneBg[idx];
-            if (_roadA != null && zoneRoad != null && idx < zoneRoad.Length) _roadA.sprite = zoneRoad[idx];
-            if (_roadB != null && zoneRoad != null && idx < zoneRoad.Length) _roadB.sprite = zoneRoad[idx];
+            if (_roadTiles != null && zoneRoad != null && idx < zoneRoad.Length)
+                for (int i = 0; i < _roadTiles.Length; i++)
+                    if (_roadTiles[i] != null) _roadTiles[i].sprite = zoneRoad[idx];
             if (_bg != null) _bg.color = _zoneTint * _weatherTint;
         }
 

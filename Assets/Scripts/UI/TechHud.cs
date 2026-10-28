@@ -53,7 +53,7 @@ namespace DesktopDoomsday.UI
             DrawBar(x, y, cw, s.health / 100f, "健康"); y += 21f;
 
             GUI.Label(new Rect(x, y, cw, 16f), $"食{s.food} 水{s.water} 药{s.medicine} 燃{s.fuel} 件{s.parts} 蓝{s.blueprintFragments}", _small); y += 17f;
-            GUI.Label(new Rect(x, y, cw, 16f), "[M] HUD  [~] Debug  [F] 加速  [G] +60s  [J] +300s", _small);
+            GUI.Label(new Rect(x, y, cw, 16f), "[M] HUD  [K] 小人  [V] 车辆  [~] Debug  [F] 加速  [G] +60s  [J] +300s", _small);
         }
 
         private void DrawBar(float x, float y, float w, float v, string label)

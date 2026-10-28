@@ -50,5 +50,44 @@ namespace DesktopDoomsday.Systems
             state.upgradeLevels[flat] = lvl + 1;
             return true;
         }
+
+        /// <summary>
+        /// 查询指定改装线「下一级」所需成本（用于 HUD / 属性页展示）。
+        /// 返回 false 表示无法升级：cfg 缺失、trackIndex 越界、或已满级（此时 maxed=true）。
+        /// 成本公式：parts = PartsBaseCost*(当前等级+1)，fragments = FragmentCostPerLevel*(当前等级+1)。
+        /// </summary>
+        public bool GetUpgradeCost(GameState state, VehicleId vehicle, int trackIndex,
+            out int partsCost, out int fragCost, out bool maxed)
+        {
+            partsCost = 0; fragCost = 0; maxed = false;
+            var cfg = GameConfig.Instance;
+            var vc = cfg?.vehicles?.FirstOrDefault(v => v.id == vehicle);
+            if (vc == null || trackIndex < 0 || trackIndex >= vc.upgradeTracks.Count) return false;
+
+            int flat = (int)vehicle * 2 + trackIndex;
+            int lvl = state.upgradeLevels[flat];
+            var track = vc.upgradeTracks[trackIndex];
+            if (lvl >= track.maxLevel) { maxed = true; return false; }
+
+            partsCost = PartsBaseCost * (lvl + 1);
+            fragCost = FragmentCostPerLevel * (lvl + 1);
+            return true;
+        }
+
+        /// <summary>当前车辆某改装线已叠加的速度加成（各等级 speedBonusPerLevel 之和）。</summary>
+        public float GetSpeedBonus(GameState state, VehicleId vehicle, int trackIndex)
+        {
+            var cfg = GameConfig.Instance;
+            var vc = cfg?.vehicles?.FirstOrDefault(v => v.id == vehicle);
+            if (vc == null || trackIndex < 0 || trackIndex >= vc.upgradeTracks.Count) return 0f;
+
+            int flat = (int)vehicle * 2 + trackIndex;
+            int lvl = state.upgradeLevels[flat];
+            var arr = vc.upgradeTracks[trackIndex].speedBonusPerLevel;
+            if (arr == null) return 0f;
+            float sum = 0f;
+            for (int i = 0; i < lvl && i < arr.Length; i++) sum += arr[i];
+            return sum;
+        }
     }
 }
