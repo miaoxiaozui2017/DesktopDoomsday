@@ -3,6 +3,7 @@ using UnityEngine;
 using DesktopDoomsday.Core;
 using DesktopDoomsday.Data;
 using DesktopDoomsday.Systems;
+using DesktopDoomsday.UI;
 
 namespace DesktopDoomsday.Core
 {
@@ -59,6 +60,7 @@ namespace DesktopDoomsday.Core
                 GameLoop.OnTick += TickAll;
 
             ConfigureRenderAndFrameRate();
+            EnsureVisualLayer();
         }
 
         /// <summary>新开局初始化：确定性种子 + 初始物资 + 首个里程宝箱阈值。</summary>
@@ -100,6 +102,32 @@ namespace DesktopDoomsday.Core
                 cam.clearFlags = CameraClearFlags.SolidColor;
                 cam.backgroundColor = new Color(0f, 0f, 0f, 0f);
             }
+        }
+
+        /// <summary>
+        /// 可视化层自动装配：可玩视图、科技 HUD、快进工具，并尝试挂 Pixel Perfect 相机。
+        /// 让用户 Play 即可看到画面，不必在 Inspector 手动挂组件。
+        /// </summary>
+        private void EnsureVisualLayer()
+        {
+            if (FindObjectOfType<GameView>() == null) gameObject.AddComponent<GameView>();
+            if (FindObjectOfType<TechHud>() == null) gameObject.AddComponent<TechHud>();
+            if (FindObjectOfType<FastForward>() == null) gameObject.AddComponent<FastForward>();
+            EnsurePixelPerfect();
+        }
+
+        /// <summary>反射式挂 Pixel Perfect Camera：包未导入时静默跳过，不产生硬编译依赖。</summary>
+        private void EnsurePixelPerfect()
+        {
+            if (Camera.main == null) return;
+            System.Type t = null;
+            foreach (var asm in System.AppDomain.CurrentDomain.GetAssemblies())
+            {
+                t = asm.GetType("UnityEngine.U2D.PixelPerfectCamera");
+                if (t != null) break;
+            }
+            if (t != null && Camera.main.GetComponent(t) == null)
+                Camera.main.gameObject.AddComponent(t);
         }
 
         /// <summary>核心循环（SPEC 第 1 节）：天气 → 公路 → 宝箱 → 小人需求。库存由系统内部调用。</summary>

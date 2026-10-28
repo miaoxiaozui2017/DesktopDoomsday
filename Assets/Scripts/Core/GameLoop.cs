@@ -13,6 +13,9 @@ namespace DesktopDoomsday.Core
 
         public static event System.Action<float> OnTick;
 
+        /// <summary>开发用时间加速倍数（FastForward 长按 F）。1 = 正常。</summary>
+        public static float TimeScale = 1f;
+
         private float _accumulator;
         private bool _background;
 
@@ -25,13 +28,19 @@ namespace DesktopDoomsday.Core
         private void Update()
         {
             float interval = _background ? backgroundTickInterval : baseTickInterval;
-            _accumulator += Time.unscaledDeltaTime;
+            _accumulator += Time.unscaledDeltaTime * (TimeScale > 0f ? TimeScale : 1f);
             if (_accumulator >= interval)
             {
                 float delta = _accumulator; // 真实经过秒数（含后台补足）
                 _accumulator = 0f;
                 OnTick?.Invoke(delta);
             }
+        }
+
+        /// <summary>一次性推进指定秒数（FastForward 单击跳秒）。</summary>
+        public void JumpSeconds(float seconds)
+        {
+            if (seconds > 0f) OnTick?.Invoke(seconds);
         }
     }
 }
