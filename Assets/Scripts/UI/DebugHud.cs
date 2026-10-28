@@ -68,6 +68,18 @@ namespace DesktopDoomsday.UI
                     Debug.Log($"[DebugHud] Upgrade track0 -> {ok} (parts={gs.parts}, blue={gs.blueprintFragments}, lvl={gs.upgradeLevels[((int)gs.currentVehicle) * 2]})");
                 }
             }
+
+            // 调试：发放测试资源（蓝图碎片目前仅 Batch4 副本宝箱产出，此处便于提前验证改装）
+            if (Input.GetKeyDown(KeyCode.B))
+            {
+                var gs = ServiceLocator.Get<GameState>();
+                if (gs != null) { gs.blueprintFragments += 5; Debug.Log($"[DebugHud] +5 blueprint -> {gs.blueprintFragments}"); }
+            }
+            if (Input.GetKeyDown(KeyCode.P))
+            {
+                var gs = ServiceLocator.Get<GameState>();
+                if (gs != null) { gs.parts += 20; Debug.Log($"[DebugHud] +20 parts -> {gs.parts}"); }
+            }
         }
 
         private void OnGUI()
@@ -96,7 +108,7 @@ namespace DesktopDoomsday.UI
                 $"CHESTS  {_chestCount}\n" +
                 $"PLAY    {gs.playTimeSeconds:F0}s\n" +
                 $"FPS     {_fps:F1}\n" +
-                $"[~] toggle  [U] upgrade track0  (DebugHud)";
+                $"[~] toggle  [U] upgrade  [P] +parts  [B] +blue  (DebugHud)";
 
             GUI.Box(new Rect(8, 8, 300, 320), "DEBUG HUD");
             GUI.Label(new Rect(18, 30, 280, 285), text);
