@@ -1,0 +1,109 @@
+# 项目代码索引（Code Index）
+
+> 按 SPEC 第 3 节「目录结构」编排，记录当前工程已有代码中各文件已实现的主要功能。
+> 图例：✅ 已实现（标注所属 Batch）｜🔲 规划中（标注计划 Batch，尚未实现）｜📐 接口/数据空壳
+
+---
+
+## DesktopDoomsday/
+
+```
+DesktopDoomsday/
+├── Assets/
+│   ├── Scenes/
+│   │   └── Main.unity                    🔲 入口场景（用户已在 Unity 手动创建，挂载 Bootstrapper + GameLoop + DebugHud）
+│   ├── Scripts/
+│   │   ├── Core/
+│   │   │   ├── GameState.cs              ✅ Batch1  单一运行时数据源
+│   │   │   ├── GameEvents.cs             ✅ Batch1  跨系统事件总线
+│   │   │   ├── GameLoop.cs               ✅ Batch1  固定 tick 调度器
+│   │   │   ├── SaveSystem.cs             ✅ Batch1  存档/读档/离线时间计算
+│   │   │   ├── ServiceLocator.cs         ✅ Batch1  轻量服务定位器
+│   │   │   ├── Bootstrapper.cs           ✅ Batch1+2 入口编排（核心循环）
+│   │   │   └── DeterministicRandom.cs    ✅ Batch2  确定性随机数（xorshift32）
+│   │   ├── Systems/
+│   │   │   ├── SystemInterfaces.cs       📐 Batch1  各系统接口空壳（签名取自 SPEC 5.x）
+│   │   │   ├── RoadSystem.cs             ✅ Batch2  公路推进 / 区域解锁
+│   │   │   ├── ChestSystem.cs            ✅ Batch2  宝箱生成 / 开启 / 掉落
+│   │   │   ├── InventorySystem.cs        ✅ Batch2  物资库存增删查
+│   │   │   ├── SurvivorSystem.cs         ✅ Batch2  小人三需求 / 虚弱状态（不致死）
+│   │   │   ├── WeatherSystem.cs          🔲 Batch3  天气轮换与数值修正
+│   │   │   ├── VehicleSystem.cs          🔲 Batch3  车辆选择 / 改装线
+│   │   │   ├── DungeonSystem.cs          🔲 Batch4  副本触发 / 分支结算
+│   │   │   └── AchievementSystem.cs      🔲 Batch7  成就判定
+│   │   ├── Window/
+│   │   │   ├── TransparentWindow.cs      🔲 Batch5  Win32 透明/分层窗口
+│   │   │   ├── ClickThroughManager.cs    🔲 Batch5  点击穿透切换
+│   │   │   └── TrayManager.cs            🔲 Batch5  托盘菜单
+│   │   ├── UI/
+│   │   │   ├── DebugHud.cs               ✅ Batch1+2 开发期调试覆盖层（IMGUI，~ 键开关）
+│   │   │   ├── MainHud.cs                🔲 Batch6  正式 HUD（科技感 uGUI）
+│   │   │   ├── DungeonPrompt.cs          🔲 Batch6  非模态副本提示
+│   │   │   ├── DungeonPanel.cs           🔲 Batch6  副本分支面板
+│   │   │   └── OfflineReport.cs          🔲 Batch6  离线收益报告
+│   │   └── Data/
+│   │       ├── Enums.cs                  ✅ Batch1  全部枚举定义
+│   │       ├── GameConfig.cs             ✅ Batch1  ScriptableObject 静态配置表及配套类
+│   │       └── DTO/
+│   │           └── SaveData.cs           ✅ Batch1  存档 DTO
+│   ├── Art/                              🔲 美术资源（Batch 5/6 起按 SPEC 第 9 节填充）
+│   ├── Audio/                            🔲 音频资源（后续批次）
+│   └── Resources/
+│       └── GameConfig.asset              🔲 GameConfig 资产（在 Unity Inspector 按 SPEC 4.2 填写）
+├── docs/
+│   ├── SPEC.md                           ✅ 实现契约（SPEC 驱动开发基准）
+│   └── CODE_INDEX.md                     ✅ 本文件
+├── .codebuddy/                           ✅ 项目记忆 / 编码规范 / Unity Agent 定义
+├── ProjectSettings/                      ✅ Unity 工程元数据（ProjectVersion.txt 等，由编辑器生成）
+├── Packages/
+│   └── manifest.json                     ✅ 依赖清单（Newtonsoft + Unity 内置模块）
+└── .gitignore                            ✅ Unity 专用忽略规则
+```
+
+---
+
+## 各文件主要功能（已实现部分）
+
+### Core/ — 核心框架
+- **GameState.cs** ✅：单一运行时数据源。字段严格对应 SPEC 4.1（公路/车辆/物资/小人/天气/宝箱/副本/时间/成就），并额外增加 `rngSeed`（确定性随机种子，存入存档）。构造函数初始化默认值（小人三值=100、区域=城郊、天气=晴天、种子=12345）。
+- **GameEvents.cs** ✅：静态事件总线。声明 10 个跨系统事件（距离/宝箱/物资/小人状态/天气/区域/副本/离线报告/成就），并提供 null-safe `Raise*` 触发器。UI 订阅、Systems 触发，禁止回调内改他系统状态。并定义传递用的结构体 `ResourceDelta / ChestOpenResult / DungeonResult / OfflineReport`。
+- **GameLoop.cs** ✅：固定 tick 调度器。`Update` 用 `Time.unscaledDeltaTime` 累加真实时间，达到间隔（前台 1.0s / 后台 5.0s）触发 `OnTick(float deltaSeconds)`。帧率与 tick 解耦，后台按真实经过时间补齐。
+- **SaveSystem.cs** ✅：存档读写。`Save` 用 Newtonsoft.Json 序列化 `SaveData` 到 `persistentDataPath/save.json`，先写 `.tmp` 再 `File.Replace`（原子替换 + `.bak` 备份）。`ComputeOfflineSeconds` 计算离线秒数，上限 8 小时，时间回拨（now < lastSave）返回 0。`Load` 校验 `version`，不匹配走 `Migrate`（当前占位）。
+- **ServiceLocator.cs** ✅：轻量服务定位。`Register<T> / Get<T> / TryGet<T>` 按类型存取单例，避免热路径 `Find`/`GetComponent`（编码规范红线）。
+- **Bootstrapper.cs** ✅：入口 `MonoBehaviour`。`Awake` 加载存档或新建 `GameState`、注册服务、连接 `GameLoop.OnTick → TickAll`、调用 `ConfigureRenderAndFrameRate`（设 `targetFrameRate=30`、`vSyncCount=0`、主相机 `SolidColor` + 背景 `RGBA(0,0,0,0)`）。`InitNewGame` 派生命定性种子 + 初始物资（读 `GameConfig` 或兜底常量）+ 首个里程宝箱阈值。`TickAll` 按核心循环顺序调用 公路→宝箱→小人。`OnApplicationQuit` 自动保存。
+- **DeterministicRandom.cs** ✅：xorshift32 确定性随机。内部状态为单个 uint，可完整序列化进 `GameState.rngSeed`，保证读档后随机序列可复现（验收项 10）。提供 `NextFloat / NextInt / Range`，不依赖 `UnityEngine.Random`。
+
+### Systems/ — 业务系统
+- **SystemInterfaces.cs** 📐：Batch 1 接口空壳。含 `IRoadSystem / IChestSystem / IInventorySystem / ISurvivorSystem / IWeatherSystem / IVehicleSystem / IDungeonSystem / IAchievementSystem`，方法签名严格取自 SPEC 5.x。
+- **RoadSystem.cs** ✅：实现 `IRoadSystem`。`GetCurrentSpeed` 推导速度 =（基础 + 升级加成）× 天气修正 × 小人修正；`Tick` 推进 `totalDistanceKm` 与 `distanceSinceLastChest` 并触发 `OnDistanceAdvanced`；`TryUnlockNextZone` 达到区域里程自动解锁、不可逆、末区后无限循环；`GetZoneProgress` 返回当前区域进度；`SurvivorSpeedFactor` 在 Weakened 时按虚弱程度 0.7–0.9 插值（不降为 0）。配置缺失时回退兜底默认速度。
+- **ChestSystem.cs** ✅：实现 `IChestSystem`。`Tick` 处理里程宝箱（阈值触发，开启后重随机阈值，摩托 −10%）与随机宝箱（基础概率 × 天气加成 × 车辆加成）；`Open` 按 `ResourceConfig` 权重掉落 1–3 种物资，副本宝箱额外掉蓝图碎片。全程走 `DeterministicRandom(rngSeed)`，每次调用后写回 `state.rngSeed` 保证可复现。
+- **InventorySystem.cs** ✅：实现 `IInventorySystem`。库存即 `GameState` 五个 int 字段（food/water/medicine/fuel/parts）。`Add / TryConsume / GetAmount`，变化时触发 `OnInventoryChanged`。被 ChestSystem（入库）与 SurvivorSystem（消耗）复用。
+- **SurvivorSystem.cs** ✅：实现 `ISurvivorSystem`。每 tick 三需求（hunger/thirst/health）按配置或兜底速率下降，叠加 Weakened ×1.3 与天气消耗修正；任一值 ≤0 时尝试消耗 1 单位对应物资补货（food→饥饿 / water→口渴 / medicine→生命），库存不足则保持 0 并进入 `Weakened`（**仅降速惩罚，不致死**）；三值全部 >60 解除 Weakened。状态切换触发 `OnSurvivorStateChanged`。
+- **WeatherSystem / VehicleSystem / DungeonSystem / AchievementSystem** 🔲：接口已在 `SystemInterfaces.cs` 定义，实现分别在 Batch 3 / 3 / 4 / 7。
+
+### Window/ — 桌面窗口层（全部 🔲 Batch 5）
+- `TransparentWindow.cs`：Win32 分层/穿透/置顶（P/Invoke）。
+- `ClickThroughManager.cs`：全局快捷键切换点击穿透。
+- `TrayManager.cs`：托盘图标与右键菜单。
+
+### UI/
+- **DebugHud.cs** ✅：开发期调试覆盖层（IMGUI，零预制体）。订阅 `GameEvents` 实时显示里程/速度/区域/天气/小人三需求条形/物资/宝箱计数/FPS/游玩时长，`~` 键开关。发布前可隐藏或删除；正式 UI 在 Batch 6 按 SPEC 第 9 节实现。
+- **MainHud / DungeonPrompt / DungeonPanel / OfflineReport** 🔲：Batch 6 正式 UI，订阅事件不轮询。
+
+### Data/
+- **Enums.cs** ✅：枚举 `VehicleId(Pickup/Van/Motorcycle)`、`WeatherId(Sunny/Rainstorm/Sandstorm/ExtremeCold)`、`DungeonId(WarehouseRaid/ConvoyChase)`、`ChestType(Mileage/Random/Dungeon)`、`SurvivorState(Normal/Weakened)`、`ZoneId(Suburb/Desert/Tundra)`。
+- **GameConfig.cs** ✅：`ScriptableObject` 静态配置表。含实体类 `VehicleConfig / ZoneConfig / WeatherConfig / ResourceConfig / SurvivorConfig / DungeonConfig / AchievementConfig` 及子结构 `UpgradeTrack / ZoneWeatherWeight / ResourceDropWeight / DungeonBranch`。`Instance` 从 `Resources.Load<GameConfig>("GameConfig")` 加载（对应 `Resources/GameConfig.asset`）。所有系统优先读此表，缺失时回退兜底常量，保证空配置也能运行。
+- **DTO/SaveData.cs** ✅：存档 DTO `version(int) + state(GameState) + savedAtUnixMs(long)`；依赖 Newtonsoft.Json 序列化 `HashSet` 等。
+
+---
+
+## 批次进度一览
+| Batch | 内容 | 状态 |
+|------|------|------|
+| 1 | 核心数据 / 循环骨架 / 事件 / 存档 | ✅ 已实现并合并 main |
+| 2 | 公路 / 宝箱 / 库存 / 小人 | ✅ 已实现并合并 main |
+| 3 | 天气 / 车辆 / 区域修正 | 🔲 待开发 |
+| 4 | 副本系统 | 🔲 待开发 |
+| 5 | 桌面窗口层 | 🔲 待开发 |
+| 6 | 正式 UI / 离线报告 | 🔲 待开发 |
+| 7 | 成就 / 性能打磨 | 🔲 待开发 |

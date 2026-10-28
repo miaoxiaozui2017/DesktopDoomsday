@@ -1,6 +1,7 @@
 using UnityEngine;
 using DesktopDoomsday.Core;
 using DesktopDoomsday.Data;
+using DesktopDoomsday.Systems;
 
 namespace DesktopDoomsday.UI
 {
@@ -55,6 +56,18 @@ namespace DesktopDoomsday.UI
             }
             if (Input.GetKeyDown(KeyCode.BackQuote))
                 _show = !_show;
+
+            // 调试：按 U 对当前车辆改装线 0 尝试升级（验证 VehicleSystem.TryUpgrade）
+            if (Input.GetKeyDown(KeyCode.U))
+            {
+                var vs = ServiceLocator.Get<VehicleSystem>();
+                var gs = ServiceLocator.Get<GameState>();
+                if (vs != null && gs != null)
+                {
+                    bool ok = vs.TryUpgrade(gs, gs.currentVehicle, 0);
+                    Debug.Log($"[DebugHud] Upgrade track0 -> {ok} (parts={gs.parts}, blue={gs.blueprintFragments}, lvl={gs.upgradeLevels[((int)gs.currentVehicle) * 2]})");
+                }
+            }
         }
 
         private void OnGUI()
@@ -72,17 +85,18 @@ namespace DesktopDoomsday.UI
                 $"DIST    {gs.totalDistanceKm:F2} km\n" +
                 $"SPEED   {gs.currentSpeedKmPerTick:F3} km/s\n" +
                 $"ZONE    {gs.currentZoneIndex}  ({ZoneName(gs.currentZoneIndex)})\n" +
-                $"WEATHER {_weather}\n" +
+                $"WEATHER {_weather}  ({gs.weatherRemainingSeconds:F0}s)\n" +
+                $"VEHICLE {gs.currentVehicle}\n" +
                 $"SURV    {_survivor}\n" +
                 $"  HUNGER {Bar(gs.hunger)} {gs.hunger:F0}\n" +
                 $"  THIRST {Bar(gs.thirst)} {gs.thirst:F0}\n" +
                 $"  HEALTH {Bar(gs.health)} {gs.health:F0}\n" +
                 $"FOOD {gs.food}  WATER {gs.water}  MED {gs.medicine}\n" +
-                $"FUEL {gs.fuel}  PARTS {gs.parts}\n" +
+                $"FUEL {gs.fuel}  PARTS {gs.parts}  BLUE {gs.blueprintFragments}\n" +
                 $"CHESTS  {_chestCount}\n" +
                 $"PLAY    {gs.playTimeSeconds:F0}s\n" +
                 $"FPS     {_fps:F1}\n" +
-                $"[~] toggle  (DebugHud)";
+                $"[~] toggle  [U] upgrade track0  (DebugHud)";
 
             GUI.Box(new Rect(8, 8, 300, 320), "DEBUG HUD");
             GUI.Label(new Rect(18, 30, 280, 285), text);
