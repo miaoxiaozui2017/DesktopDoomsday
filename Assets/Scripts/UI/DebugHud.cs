@@ -6,9 +6,9 @@ namespace DesktopDoomsday.UI
 {
     /// <summary>
     /// 开发期调试覆盖层（IMGUI，零预制体，Play 即可见）。
-    /// 订阅 GameEvents 实时显示 里程/速度/小人状态/天气/FPS；按 ~ 键开关。
+    /// 订阅 GameEvents 实时显示 里程/速度/区域/小人需求/天气/物资/宝箱计数/FPS；按 ~ 键开关。
     /// 直接支撑「可视化 + 可调式」：tick 推进、数值循环、状态切换肉眼可见。
-    /// 发布前可隐藏此组件或整文件删除。
+    /// 发布前可隐藏此组件或整文件删除。正式 UI 在 Batch 6 按 SPEC 第 9 节科技感规范实现。
     /// </summary>
     public class DebugHud : MonoBehaviour
     {
@@ -20,12 +20,14 @@ namespace DesktopDoomsday.UI
         private float _lastDist;
         private SurvivorState _survivor = SurvivorState.Normal;
         private WeatherId _weather = WeatherId.Sunny;
+        private int _chestCount;
 
         private void OnEnable()
         {
             GameEvents.OnDistanceAdvanced += OnDistance;
             GameEvents.OnSurvivorStateChanged += OnSurvivor;
             GameEvents.OnWeatherChanged += OnWeather;
+            GameEvents.OnChestOpened += OnChest;
         }
 
         private void OnDisable()
@@ -33,11 +35,13 @@ namespace DesktopDoomsday.UI
             GameEvents.OnDistanceAdvanced -= OnDistance;
             GameEvents.OnSurvivorStateChanged -= OnSurvivor;
             GameEvents.OnWeatherChanged -= OnWeather;
+            GameEvents.OnChestOpened -= OnChest;
         }
 
         private void OnDistance(float d) => _lastDist = d;
         private void OnSurvivor(SurvivorState s) => _survivor = s;
         private void OnWeather(WeatherId w) => _weather = w;
+        private void OnChest(ChestOpenResult r) => _chestCount++;
 
         private void Update()
         {
@@ -57,18 +61,48 @@ namespace DesktopDoomsday.UI
         {
             if (!_show) return;
             var gs = ServiceLocator.Get<GameState>();
-            string text = gs == null ? "(no GameState)"
-                : $"DIST    {gs.totalDistanceKm:F2} km\n" +
-                  $"SPEED   {gs.currentSpeedKmPerTick:F2}\n" +
-                  $"ZONE    {gs.currentZoneIndex}\n" +
-                  $"SURV    {_survivor}  H{gs.hunger:F0} T{gs.thirst:F0} HP{gs.health:F0}\n" +
-                  $"WEATHER {_weather}\n" +
-                  $"PLAY    {gs.playTimeSeconds:F0}s\n" +
-                  $"FPS     {_fps:F1}\n" +
-                  $"[~] toggle";
+            if (gs == null)
+            {
+                GUI.Box(new Rect(8, 8, 220, 40), "DEBUG HUD");
+                GUI.Label(new Rect(18, 30, 200, 20), "(no GameState)");
+                return;
+            }
 
-            GUI.Box(new Rect(8, 8, 250, 180), "DEBUG");
-            GUI.Label(new Rect(18, 30, 230, 150), text);
+            string text =
+                $"DIST    {gs.totalDistanceKm:F2} km\n" +
+                $"SPEED   {gs.currentSpeedKmPerTick:F3} km/s\n" +
+                $"ZONE    {gs.currentZoneIndex}  ({ZoneName(gs.currentZoneIndex)})\n" +
+                $"WEATHER {_weather}\n" +
+                $"SURV    {_survivor}\n" +
+                $"  HUNGER {Bar(gs.hunger)} {gs.hunger:F0}\n" +
+                $"  THIRST {Bar(gs.thirst)} {gs.thirst:F0}\n" +
+                $"  HEALTH {Bar(gs.health)} {gs.health:F0}\n" +
+                $"FOOD {gs.food}  WATER {gs.water}  MED {gs.medicine}\n" +
+                $"FUEL {gs.fuel}  PARTS {gs.parts}\n" +
+                $"CHESTS  {_chestCount}\n" +
+                $"PLAY    {gs.playTimeSeconds:F0}s\n" +
+                $"FPS     {_fps:F1}\n" +
+                $"[~] toggle  (DebugHud)";
+
+            GUI.Box(new Rect(8, 8, 300, 320), "DEBUG HUD");
+            GUI.Label(new Rect(18, 30, 280, 285), text);
+        }
+
+        private static string Bar(float v)
+        {
+            int n = Mathf.Clamp(Mathf.RoundToInt(v / 100f * 10f), 0, 10);
+            return "[" + new string('#', n) + new string('-', 10 - n) + "]";
+        }
+
+        private static string ZoneName(int idx)
+        {
+            switch (idx)
+            {
+                case 0: return "城郊";
+                case 1: return "荒漠";
+                case 2: return "冻原";
+                default: return "循环";
+            }
         }
     }
 }

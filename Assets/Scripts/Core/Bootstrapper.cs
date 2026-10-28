@@ -1,17 +1,23 @@
+using System;
 using UnityEngine;
 using DesktopDoomsday.Core;
+using DesktopDoomsday.Data;
+using DesktopDoomsday.Systems;
 
 namespace DesktopDoomsday.Core
 {
     /// <summary>
     /// 入口。挂到 Main.unity 唯一 GameObject。
-    /// 职责：加载存档或新建 GameState、注册服务、连接 GameLoop、退出时保存。
-    /// 开局选车面板（VehicleSystem）在后续 Batch 接入。
+    /// 职责：加载存档或新建 GameState、注册服务、连接 GameLoop（Batch 2 起驱动各 System）、退出时保存。
+    /// 开局选车面板（VehicleSystem）在 Batch 3 接入；天气/区域在 Batch 3 接入。
     /// </summary>
     public class Bootstrapper : MonoBehaviour
     {
         private GameState _state;
         private SaveSystem _save;
+        private RoadSystem _road;
+        private ChestSystem _chest;
+        private SurvivorSystem _survivor;
 
         private void Awake()
         {
@@ -19,21 +25,24 @@ namespace DesktopDoomsday.Core
             ServiceLocator.Register(_save);
 
             var data = _save.Load();
-            if (data != null && data.state != null)
+            bool isNew = (data == null || data.state == null);
+            if (!isNew)
             {
                 _state = data.state;
                 float offline = _save.ComputeOfflineSeconds(_state.lastSaveUnixMs);
                 if (offline > 0f)
-                {
-                    // 离线结算在 Batch 5 接入；此处仅记录。
                     Debug.Log($"[Bootstrapper] Offline seconds pending: {offline}");
-                }
             }
             else
             {
                 _state = new GameState();
+                InitNewGame(_state);
             }
             ServiceLocator.Register(_state);
+
+            _road = new RoadSystem();
+            _chest = new ChestSystem();
+            _survivor = new SurvivorSystem();
 
             var loop = FindObjectOfType<GameLoop>();
             if (loop != null)
@@ -42,12 +51,30 @@ namespace DesktopDoomsday.Core
             ConfigureRenderAndFrameRate();
         }
 
-        /// <summary>
-        /// SPEC 2.2 的渲染/帧率前置设置。
-        /// - targetFrameRate=30（静止挂机可调到 10 省 CPU），并关闭 vSync 让帧上限生效。
-        /// - 主相机 Solid Color + 背景 Alpha=0：透明窗口前置，Batch 5 接 Win32 分层后才真正透出桌面。
-        /// 这些都是代码 API，Unity 设置面板里没有对应项，故在此统一初始化。
-        /// </summary>
+        /// <summary>新开局初始化：确定性种子 + 初始物资 + 首个里程宝箱阈值。</summary>
+        private void InitNewGame(GameState s)
+        {
+            // 首次种子用时间派生；之后全程由 rngSeed 驱动，读档可复现（SPEC 验收 10）。
+            s.rngSeed = (int)((DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() & 0x7FFFFFFF) | 1);
+
+            var cfg = GameConfig.Instance;
+            if (cfg != null && cfg.resources != null)
+            {
+                s.food = cfg.resources.initialFood;
+                s.water = cfg.resources.initialWater;
+                s.medicine = cfg.resources.initialMedicine;
+                s.fuel = cfg.resources.initialFuel;
+                s.parts = cfg.resources.initialParts;
+            }
+            else
+            {
+                // 兜底初始物资，保证首局可长时间维持 Normal（后续可在 GameConfig 调整）。
+                s.food = 50; s.water = 50; s.medicine = 30; s.fuel = 100; s.parts = 20;
+            }
+            s.nextChestThresholdKm = 2f;
+        }
+
+        /// <summary>SPEC 2.2 渲染/帧率前置设置（代码 API，Unity 设置面板无对应项）。</summary>
         private void ConfigureRenderAndFrameRate()
         {
             Application.targetFrameRate = 30;
@@ -61,10 +88,13 @@ namespace DesktopDoomsday.Core
             }
         }
 
+        /// <summary>核心循环（SPEC 第 1 节）：公路 → 宝箱 → 小人需求。库存由系统内部调用。</summary>
         private void TickAll(float dt)
         {
             _state.playTimeSeconds += dt;
-            // 各 System 自行订阅 GameLoop.OnTick 实现逻辑（Batch 2+）。
+            _road.Tick(_state, dt);
+            _chest.Tick(_state, dt);
+            _survivor.Tick(_state, dt);
         }
 
         private void OnApplicationQuit()
