@@ -21,6 +21,7 @@ namespace DesktopDoomsday.Core
         private SurvivorSystem _survivor;
         private WeatherSystem _weather;
         private VehicleSystem _vehicle;
+        private DungeonSystem _dungeon;
 
         private void Awake()
         {
@@ -33,11 +34,13 @@ namespace DesktopDoomsday.Core
             _survivor = new SurvivorSystem();
             _weather = new WeatherSystem();
             _vehicle = new VehicleSystem();
+            _dungeon = new DungeonSystem();
             ServiceLocator.Register(_road);
             ServiceLocator.Register(_chest);
             ServiceLocator.Register(_survivor);
             ServiceLocator.Register(_weather);
             ServiceLocator.Register(_vehicle);
+            ServiceLocator.Register(_dungeon);
 
             var data = _save.Load();
             bool isNew = (data == null || data.state == null);
@@ -132,13 +135,20 @@ namespace DesktopDoomsday.Core
                 Camera.main.gameObject.AddComponent(t);
         }
 
-        /// <summary>核心循环（SPEC 第 1 节）：天气 → 公路 → 宝箱 → 小人需求。库存由系统内部调用。</summary>
+        /// <summary>核心循环（SPEC 第 1 节）：天气 → 副本 → 公路/宝箱（可被暂停）→ 小人需求。</summary>
         private void TickAll(float dt)
         {
             _state.playTimeSeconds += dt;
             _weather.Tick(_state, dt);   // 先更新天气（影响后续公路/宝箱/小人修正）
-            _road.Tick(_state, dt);
-            _chest.Tick(_state, dt);
+            _dungeon.Tick(_state, dt);   // 推进副本冷却/超时/触发
+
+            // PauseRoadDuringDungeon（SPEC 5.6 设置项，默认 false）：打开副本面板（pending 期间）暂停公路与宝箱 tick
+            bool pauseRoad = _state.pauseRoadDuringDungeon && _state.pendingDungeon.HasValue;
+            if (!pauseRoad)
+            {
+                _road.Tick(_state, dt);
+                _chest.Tick(_state, dt);
+            }
             _survivor.Tick(_state, dt);
         }
 

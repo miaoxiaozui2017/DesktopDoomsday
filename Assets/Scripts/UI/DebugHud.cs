@@ -22,6 +22,7 @@ namespace DesktopDoomsday.UI
         private SurvivorState _survivor = SurvivorState.Normal;
         private WeatherId _weather = WeatherId.Sunny;
         private int _chestCount;
+        private List<string> _dungeonLog = new List<string>();
 
         private void OnEnable()
         {
@@ -29,6 +30,8 @@ namespace DesktopDoomsday.UI
             GameEvents.OnSurvivorStateChanged += OnSurvivor;
             GameEvents.OnWeatherChanged += OnWeather;
             GameEvents.OnChestOpened += OnChest;
+            GameEvents.OnDungeonAvailable += OnDungeonAvailable;
+            GameEvents.OnDungeonCompleted += OnDungeonCompleted;
         }
 
         private void OnDisable()
@@ -37,6 +40,16 @@ namespace DesktopDoomsday.UI
             GameEvents.OnSurvivorStateChanged -= OnSurvivor;
             GameEvents.OnWeatherChanged -= OnWeather;
             GameEvents.OnChestOpened -= OnChest;
+            GameEvents.OnDungeonAvailable -= OnDungeonAvailable;
+            GameEvents.OnDungeonCompleted -= OnDungeonCompleted;
+        }
+
+        private void OnDungeonAvailable(DungeonId id) => PushLog($"副本出现: {id}");
+        private void OnDungeonCompleted(DungeonResult r) => PushLog($"副本完成: {r.id} (+{r.blueprintFragments}蓝)");
+        private void PushLog(string s)
+        {
+            _dungeonLog.Insert(0, s);
+            if (_dungeonLog.Count > 3) _dungeonLog.RemoveAt(_dungeonLog.Count - 1);
         }
 
         private void OnDistance(float d) => _lastDist = d;
@@ -80,6 +93,30 @@ namespace DesktopDoomsday.UI
                 var gs = ServiceLocator.Get<GameState>();
                 if (gs != null) { gs.parts += 20; Debug.Log($"[DebugHud] +20 parts -> {gs.parts}"); }
             }
+
+            // 调试：强制触发一个副本（跳过概率/冷却，便于无面板时验收 Batch4）
+            if (Input.GetKeyDown(KeyCode.D))
+            {
+                var ds = ServiceLocator.Get<DungeonSystem>();
+                var gs = ServiceLocator.Get<GameState>();
+                if (ds != null && gs != null)
+                {
+                    bool ok = ds.ForceTrigger(gs);
+                    Debug.Log($"[DebugHud] Force dungeon -> {ok} (pending={gs.pendingDungeon})");
+                }
+            }
+
+            // 调试：以分支 0 完成当前待处理副本（验收奖励结算）
+            if (Input.GetKeyDown(KeyCode.C))
+            {
+                var ds = ServiceLocator.Get<DungeonSystem>();
+                var gs = ServiceLocator.Get<GameState>();
+                if (ds != null && gs != null && gs.pendingDungeon.HasValue)
+                {
+                    var res = ds.Complete(gs.pendingDungeon.Value, 0, gs);
+                    Debug.Log($"[DebugHud] Complete {res.id} rewards={res.rewards.Count} bp={res.blueprintFragments}");
+                }
+            }
         }
 
         private void OnGUI()
@@ -107,12 +144,16 @@ namespace DesktopDoomsday.UI
                 $"FUEL {gs.fuel}  PARTS {gs.parts}  BLUE {gs.blueprintFragments}\n" +
                 $"CHESTS  {_chestCount}\n" +
                 $"UPG     {UpgradeCostLine(gs)}\n" +
+                $"DUNGEON pending={(gs.pendingDungeon.HasValue ? gs.pendingDungeon.Value.ToString() : "—")}\n" +
+                $"  timeout={gs.pendingDungeonTimeout:F0}s  cooldown={gs.dungeonCooldownRemaining:F0}s\n" +
+                $"  autoIgnore={gs.autoIgnoreDungeons}  pauseRoad={gs.pauseRoadDuringDungeon}\n" +
+                $"  {( _dungeonLog.Count > 0 ? string.Join("  |  ", _dungeonLog.ToArray()) : "")}\n" +
                 $"PLAY    {gs.playTimeSeconds:F0}s\n" +
                 $"FPS     {_fps:F1}\n" +
-                $"[~] toggle  [U] upgrade  [P] +parts  [B] +blue  [K] 小人  [V] 车辆  (DebugHud)";
+                $"[~] toggle  [U] upgrade  [P] +parts  [B] +blue  [D] 触发副本  [C] 完成分支0  [K] 小人  [V] 车辆  (DebugHud)";
 
-            GUI.Box(new Rect(8, 8, 300, 320), "DEBUG HUD");
-            GUI.Label(new Rect(18, 30, 280, 285), text);
+            GUI.Box(new Rect(8, 8, 300, 360), "DEBUG HUD");
+            GUI.Label(new Rect(18, 30, 280, 325), text);
         }
 
         private static string Bar(float v)

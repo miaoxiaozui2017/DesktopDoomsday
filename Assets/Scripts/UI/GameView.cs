@@ -17,7 +17,7 @@ namespace DesktopDoomsday.UI
     {
         [Header("车辆（2 帧轮子）")]
         public Sprite pickup0, pickup1, van0, van1, moto0, moto1;
-        [Header("小人（idle 常驻；walk0/walk1 预留给 Batch 4 副本移动）")]
+        [Header("小人（idle 常驻；副本待处理时走 walk0/walk1）")]
         public Sprite survivorIdle, survivorWalk0, survivorWalk1;
         [Header("宝箱")]
         public Sprite chestSprite;
@@ -165,8 +165,9 @@ namespace DesktopDoomsday.UI
             for (int i = 0; i < _roadTiles.Length; i++)
                 ScrollRoad(_roadTiles[i], step);
 
-            // 帧动画（轮子 / 走路）
-            if (moving)
+            // 帧动画（轮子 / 走路）：公路在动 或 副本待处理（小人在副本里走动）时推进
+            bool animate = moving || s.pendingDungeon.HasValue;
+            if (animate)
             {
                 _animT += dt;
                 if (_animT >= 0.12f) { _animT = 0f; _frame ^= 1; }
@@ -182,9 +183,21 @@ namespace DesktopDoomsday.UI
 
             if (_survivor != null)
             {
-                // 常驻待机：不跟随行走（移动/走路动画留待 Batch 4 副本内再启用）
-                _survivor.sprite = survivorIdle;
-                _survivor.transform.localPosition = _survBase;
+                // 副本待处理：小人走向副本（走路帧 + 左右轻摆），用于验收移动能力
+                if (s.pendingDungeon.HasValue && survivorWalk0 != null && survivorWalk1 != null)
+                {
+                    var p = _survBase;
+                    p.x += Mathf.Sin(Time.time * 6f) * 0.08f;
+                    p.y += Mathf.Abs(Mathf.Sin(Time.time * 9f)) * 0.03f;
+                    _survivor.transform.localPosition = p;
+                    _survivor.sprite = _frame == 0 ? survivorWalk0 : survivorWalk1;
+                }
+                else
+                {
+                    // 常驻待机：不跟随行走
+                    _survivor.sprite = survivorIdle;
+                    _survivor.transform.localPosition = _survBase;
+                }
             }
 
             // 宝箱弹出
