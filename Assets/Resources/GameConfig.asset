@@ -12,24 +12,215 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 09cba8bef0246114f838d954034ac5ed, type: 3}
   m_Name: GameConfig
   m_EditorClassIdentifier: 
-  vehicles: []
-  zones: []
-  weathers: []
+  vehicles:
+  - id: 0
+    displayName: "\u76AE\u5361"
+    baseSpeed: 0.05
+    fuelPerKm: 0.6
+    cargoCapacity: 60
+    chestChanceModifier: 1.05
+    dungeonRewardModifier: 1
+    upgradeTracks:
+    - trackName: "\u5F15\u64CE"
+      maxLevel: 2
+      speedBonusPerLevel:
+      - 0.01
+      - 0.02
+      fuelBonusPerLevel: []
+      capacityBonusPerLevel: []
+    - trackName: "\u8D27\u7BB1"
+      maxLevel: 2
+      speedBonusPerLevel: []
+      fuelBonusPerLevel: []
+      capacityBonusPerLevel:
+      - 10
+      - 20
+  - id: 1
+    displayName: "\u53A2\u5F0F\u8D27\u8F66"
+    baseSpeed: 0.04
+    fuelPerKm: 0.9
+    cargoCapacity: 100
+    chestChanceModifier: 1
+    dungeonRewardModifier: 1.1
+    upgradeTracks:
+    - trackName: "\u5F15\u64CE"
+      maxLevel: 2
+      speedBonusPerLevel:
+      - 0.008
+      - 0.016
+      fuelBonusPerLevel: []
+      capacityBonusPerLevel: []
+    - trackName: "\u8D27\u7BB1"
+      maxLevel: 2
+      speedBonusPerLevel: []
+      fuelBonusPerLevel: []
+      capacityBonusPerLevel:
+      - 15
+      - 30
+  - id: 2
+    displayName: "\u6469\u6258"
+    baseSpeed: 0.07
+    fuelPerKm: 0.4
+    cargoCapacity: 35
+    chestChanceModifier: 1
+    dungeonRewardModifier: 1
+    upgradeTracks:
+    - trackName: "\u5F15\u64CE"
+      maxLevel: 2
+      speedBonusPerLevel:
+      - 0.015
+      - 0.03
+      fuelBonusPerLevel: []
+      capacityBonusPerLevel: []
+    - trackName: "\u6CB9\u7BB1"
+      maxLevel: 2
+      speedBonusPerLevel:
+      - 0.005
+      - 0.01
+      fuelBonusPerLevel: []
+      capacityBonusPerLevel: []
+  zones:
+  - id: 0
+    name: "\u57CE\u90CA"
+    unlockDistanceKm: 0
+    weatherWeightTable:
+    - weather: 0
+      weight: 60
+    - weather: 1
+      weight: 30
+    - weather: 2
+      weight: 10
+    dungeonPool: 00000000
+  - id: 1
+    name: "\u8352\u6F20"
+    unlockDistanceKm: 30
+    weatherWeightTable:
+    - weather: 0
+      weight: 40
+    - weather: 2
+      weight: 50
+    - weather: 1
+      weight: 10
+    dungeonPool: 01000000
+  - id: 2
+    name: "\u51BB\u539F"
+    unlockDistanceKm: 120
+    weatherWeightTable:
+    - weather: 0
+      weight: 35
+    - weather: 3
+      weight: 50
+    - weather: 1
+      weight: 15
+    dungeonPool: 0000000001000000
+  weathers:
+  - id: 0
+    displayName: "\u6674\u5929"
+    speedMultiplier: 1
+    fuelMultiplier: 1
+    chestChanceBonus: 0
+    survivorDrainMultiplier: 1
+    durationRange: {x: 60, y: 120}
+  - id: 1
+    displayName: "\u66B4\u96E8"
+    speedMultiplier: 0.85
+    fuelMultiplier: 1
+    chestChanceBonus: 0.1
+    survivorDrainMultiplier: 1
+    durationRange: {x: 30, y: 60}
+  - id: 2
+    displayName: "\u6C99\u66B4"
+    speedMultiplier: 0.9
+    fuelMultiplier: 1.25
+    chestChanceBonus: 0.05
+    survivorDrainMultiplier: 1
+    durationRange: {x: 30, y: 60}
+  - id: 3
+    displayName: "\u6781\u5BD2"
+    speedMultiplier: 0.9
+    fuelMultiplier: 1
+    chestChanceBonus: 0
+    survivorDrainMultiplier: 1.3
+    durationRange: {x: 40, y: 80}
   resources:
-    initialFood: 0
-    initialWater: 0
-    initialMedicine: 0
-    initialFuel: 0
-    initialParts: 0
-    baseChestChance: 0.05
-    dropWeights: []
+    initialFood: 50
+    initialWater: 50
+    initialMedicine: 30
+    initialFuel: 100
+    initialParts: 20
+    baseChestChance: 0.02
+    dropWeights:
+    - resource: food
+      weight: 30
+    - resource: water
+      weight: 30
+    - resource: medicine
+      weight: 15
+    - resource: fuel
+      weight: 15
+    - resource: parts
+      weight: 10
   survivor:
-    hungerDrainPerSec: 0
-    thirstDrainPerSec: 0
-    healthDrainPerSec: 0
+    hungerDrainPerSec: 0.15
+    thirstDrainPerSec: 0.2
+    healthDrainPerSec: 0.05
     weakenThreshold: 0
     weakenedDrainMultiplier: 1.3
-    recoveryPerSec: 0
+    recoveryPerSec: 1
     recoveryDurationSec: 60
-  dungeons: []
-  achievements: []
+  dungeons:
+  - id: 0
+    displayName: "\u5E9F\u5F03\u4ED3\u5E93"
+    durationSeconds: 75
+    triggerCooldownSeconds: 180
+    triggerChancePerTick: 0.01
+    branches:
+    - branchName: "\u641C\u522E\u4ED3\u5E93"
+      rewardMultiplier: 2.5
+      blueprintFragmentReward: 2
+    - branchName: "\u68C0\u67E5\u52A0\u6CB9\u7AD9"
+      rewardMultiplier: 2
+      blueprintFragmentReward: 1
+  - id: 1
+    displayName: "\u8FFD\u51FB\u8F66\u961F"
+    durationSeconds: 70
+    triggerCooldownSeconds: 240
+    triggerChancePerTick: 0.008
+    branches:
+    - branchName: "\u8FFD\u51FB\u8F66\u961F"
+      rewardMultiplier: 3
+      blueprintFragmentReward: 3
+    - branchName: "\u7ED5\u8DEF\u907F\u9669"
+      rewardMultiplier: 1.8
+      blueprintFragmentReward: 1
+  achievements:
+  - id: dist_10
+    conditionType: distance
+    parameter: 10
+  - id: dist_100
+    conditionType: distance
+    parameter: 100
+  - id: dist_1000
+    conditionType: distance
+    parameter: 1000
+  - id: chest_1
+    conditionType: chestsOpened
+    parameter: 1
+  - id: chest_50
+    conditionType: chestsOpened
+    parameter: 50
+  - id: chest_200
+    conditionType: chestsOpened
+    parameter: 200
+  - id: dungeon_1
+    conditionType: dungeons
+    parameter: 1
+  - id: dungeon_10
+    conditionType: dungeons
+    parameter: 10
+  - id: zone_2
+    conditionType: zones
+    parameter: 2
+  - id: zone_3
+    conditionType: zones
+    parameter: 3

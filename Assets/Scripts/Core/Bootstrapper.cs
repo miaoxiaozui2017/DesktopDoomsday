@@ -3,6 +3,7 @@ using UnityEngine;
 using DesktopDoomsday.Core;
 using DesktopDoomsday.Data;
 using DesktopDoomsday.Systems;
+using DesktopDoomsday.UI;
 
 namespace DesktopDoomsday.Core
 {
@@ -18,11 +19,25 @@ namespace DesktopDoomsday.Core
         private RoadSystem _road;
         private ChestSystem _chest;
         private SurvivorSystem _survivor;
+        private WeatherSystem _weather;
+        private VehicleSystem _vehicle;
 
         private void Awake()
         {
             _save = new SaveSystem();
             ServiceLocator.Register(_save);
+
+            // 先创建各系统（InitNewGame 需要 _vehicle / _weather）
+            _road = new RoadSystem();
+            _chest = new ChestSystem();
+            _survivor = new SurvivorSystem();
+            _weather = new WeatherSystem();
+            _vehicle = new VehicleSystem();
+            ServiceLocator.Register(_road);
+            ServiceLocator.Register(_chest);
+            ServiceLocator.Register(_survivor);
+            ServiceLocator.Register(_weather);
+            ServiceLocator.Register(_vehicle);
 
             var data = _save.Load();
             bool isNew = (data == null || data.state == null);
@@ -40,15 +55,12 @@ namespace DesktopDoomsday.Core
             }
             ServiceLocator.Register(_state);
 
-            _road = new RoadSystem();
-            _chest = new ChestSystem();
-            _survivor = new SurvivorSystem();
-
             var loop = FindObjectOfType<GameLoop>();
             if (loop != null)
                 GameLoop.OnTick += TickAll;
 
             ConfigureRenderAndFrameRate();
+            EnsureVisualLayer();
         }
 
         /// <summary>新开局初始化：确定性种子 + 初始物资 + 首个里程宝箱阈值。</summary>
@@ -72,6 +84,10 @@ namespace DesktopDoomsday.Core
                 s.food = 50; s.water = 50; s.medicine = 30; s.fuel = 100; s.parts = 20;
             }
             s.nextChestThresholdKm = 2f;
+
+            // Batch 3：默认选车（三选一面板在 Batch 6 接入）；初始化首个天气与持续时间
+            _vehicle.SelectVehicle(s, VehicleId.Pickup);
+            _weather.Initialize(s);
         }
 
         /// <summary>SPEC 2.2 渲染/帧率前置设置（代码 API，Unity 设置面板无对应项）。</summary>
@@ -88,10 +104,39 @@ namespace DesktopDoomsday.Core
             }
         }
 
-        /// <summary>核心循环（SPEC 第 1 节）：公路 → 宝箱 → 小人需求。库存由系统内部调用。</summary>
+        /// <summary>
+        /// 可视化层自动装配：可玩视图、科技 HUD、快进工具，并尝试挂 Pixel Perfect 相机。
+        /// 让用户 Play 即可看到画面，不必在 Inspector 手动挂组件。
+        /// </summary>
+        private void EnsureVisualLayer()
+        {
+            if (FindObjectOfType<GameView>() == null) gameObject.AddComponent<GameView>();
+            if (FindObjectOfType<TechHud>() == null) gameObject.AddComponent<TechHud>();
+            if (FindObjectOfType<FastForward>() == null) gameObject.AddComponent<FastForward>();
+            if (FindObjectOfType<SurvivorInfoPanel>() == null) gameObject.AddComponent<SurvivorInfoPanel>();
+            if (FindObjectOfType<VehicleInfoPanel>() == null) gameObject.AddComponent<VehicleInfoPanel>();
+            EnsurePixelPerfect();
+        }
+
+        /// <summary>反射式挂 Pixel Perfect Camera：包未导入时静默跳过，不产生硬编译依赖。</summary>
+        private void EnsurePixelPerfect()
+        {
+            if (Camera.main == null) return;
+            System.Type t = null;
+            foreach (var asm in System.AppDomain.CurrentDomain.GetAssemblies())
+            {
+                t = asm.GetType("UnityEngine.U2D.PixelPerfectCamera");
+                if (t != null) break;
+            }
+            if (t != null && Camera.main.GetComponent(t) == null)
+                Camera.main.gameObject.AddComponent(t);
+        }
+
+        /// <summary>核心循环（SPEC 第 1 节）：天气 → 公路 → 宝箱 → 小人需求。库存由系统内部调用。</summary>
         private void TickAll(float dt)
         {
             _state.playTimeSeconds += dt;
+            _weather.Tick(_state, dt);   // 先更新天气（影响后续公路/宝箱/小人修正）
             _road.Tick(_state, dt);
             _chest.Tick(_state, dt);
             _survivor.Tick(_state, dt);

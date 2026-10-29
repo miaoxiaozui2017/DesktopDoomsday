@@ -21,6 +21,7 @@ namespace DesktopDoomsday.Core
 
         // 物资
         public int food, water, medicine, fuel, parts;
+        public int blueprintFragments; // 蓝图碎片，用于车辆改装（SPEC 5.7）
 
         // 小人
         public float hunger;               // 0-100
@@ -63,6 +64,7 @@ namespace DesktopDoomsday.Core
             rngSeed = 12345; // 默认值，首次开局可由 Bootstrapper 重新随机
             pendingDungeonTimeout = 20f;
             unlockedAchievementIds = new HashSet<string>();
+            blueprintFragments = 0;
         }
     }
 }

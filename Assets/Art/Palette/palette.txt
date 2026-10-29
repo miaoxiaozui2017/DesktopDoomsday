@@ -1,0 +1,22 @@
+# Desktop Doomsday 调色板（对齐 SPEC 第 9 节）
+# 同语义同色值；区域/天气靠色调切换，不换精灵。
+
+bg_dark          = #0B0E14   rgb(11, 14, 20)
+bg_panel         = #121826   rgb(18, 24, 38)
+cyan             = #22D3EE   rgb(34, 211, 238)
+amber            = #FFB000   rgb(255, 176, 0)
+green            = #3DDC84   rgb(61, 220, 132)
+red              = #FF4D4D   rgb(255, 77, 77)
+text             = #E6F1FF   rgb(230, 241, 255)
+white            = #F5FAFF   rgb(245, 250, 255)
+dark             = #0A0C10   rgb(10, 12, 16)
+wheel            = #141418   rgb(20, 20, 24)
+rim              = #78828C   rgb(120, 130, 140)
+asphalt          = #22262E   rgb(34, 38, 46)
+line             = #F0DC78   rgb(240, 220, 120)
+suburb_sky       = #1B3A4B   rgb(27, 58, 75)
+suburb_ground    = #2A9D8F   rgb(42, 157, 143)
+desert_sky       = #46382A   rgb(70, 56, 42)
+desert_ground    = #C9A24B   rgb(201, 162, 75)
+tundra_sky       = #283C55   rgb(40, 60, 85)
+tundra_ground    = #BFE3F2   rgb(191, 227, 242)

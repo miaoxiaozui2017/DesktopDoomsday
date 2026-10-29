@@ -63,6 +63,10 @@ namespace DesktopDoomsday.Systems
             if (type == ChestType.Dungeon)
                 result.blueprintFragments = 1 + rng.NextInt(3);
 
+            // 副本宝箱掉落的蓝图碎片需持久化到 GameState，供 VehicleSystem 改装消耗（SPEC 5.7）
+            if (type == ChestType.Dungeon)
+                state.blueprintFragments += result.blueprintFragments;
+
             state.rngSeed = rng.State; // 持久化随机状态
             GameEvents.RaiseChestOpened(result);
             return result;

@@ -1,6 +1,7 @@
 using UnityEngine;
 using DesktopDoomsday.Core;
 using DesktopDoomsday.Data;
+using DesktopDoomsday.Systems;
 
 namespace DesktopDoomsday.UI
 {
@@ -55,6 +56,30 @@ namespace DesktopDoomsday.UI
             }
             if (Input.GetKeyDown(KeyCode.BackQuote))
                 _show = !_show;
+
+            // 调试：按 U 对当前车辆改装线 0 尝试升级（验证 VehicleSystem.TryUpgrade）
+            if (Input.GetKeyDown(KeyCode.U))
+            {
+                var vs = ServiceLocator.Get<VehicleSystem>();
+                var gs = ServiceLocator.Get<GameState>();
+                if (vs != null && gs != null)
+                {
+                    bool ok = vs.TryUpgrade(gs, gs.currentVehicle, 0);
+                    Debug.Log($"[DebugHud] Upgrade track0 -> {ok} (parts={gs.parts}, blue={gs.blueprintFragments}, lvl={gs.upgradeLevels[((int)gs.currentVehicle) * 2]})");
+                }
+            }
+
+            // 调试：发放测试资源（蓝图碎片目前仅 Batch4 副本宝箱产出，此处便于提前验证改装）
+            if (Input.GetKeyDown(KeyCode.B))
+            {
+                var gs = ServiceLocator.Get<GameState>();
+                if (gs != null) { gs.blueprintFragments += 5; Debug.Log($"[DebugHud] +5 blueprint -> {gs.blueprintFragments}"); }
+            }
+            if (Input.GetKeyDown(KeyCode.P))
+            {
+                var gs = ServiceLocator.Get<GameState>();
+                if (gs != null) { gs.parts += 20; Debug.Log($"[DebugHud] +20 parts -> {gs.parts}"); }
+            }
         }
 
         private void OnGUI()
@@ -72,17 +97,19 @@ namespace DesktopDoomsday.UI
                 $"DIST    {gs.totalDistanceKm:F2} km\n" +
                 $"SPEED   {gs.currentSpeedKmPerTick:F3} km/s\n" +
                 $"ZONE    {gs.currentZoneIndex}  ({ZoneName(gs.currentZoneIndex)})\n" +
-                $"WEATHER {_weather}\n" +
+                $"WEATHER {_weather}  ({gs.weatherRemainingSeconds:F0}s)\n" +
+                $"VEHICLE {gs.currentVehicle}\n" +
                 $"SURV    {_survivor}\n" +
                 $"  HUNGER {Bar(gs.hunger)} {gs.hunger:F0}\n" +
                 $"  THIRST {Bar(gs.thirst)} {gs.thirst:F0}\n" +
                 $"  HEALTH {Bar(gs.health)} {gs.health:F0}\n" +
                 $"FOOD {gs.food}  WATER {gs.water}  MED {gs.medicine}\n" +
-                $"FUEL {gs.fuel}  PARTS {gs.parts}\n" +
+                $"FUEL {gs.fuel}  PARTS {gs.parts}  BLUE {gs.blueprintFragments}\n" +
                 $"CHESTS  {_chestCount}\n" +
+                $"UPG     {UpgradeCostLine(gs)}\n" +
                 $"PLAY    {gs.playTimeSeconds:F0}s\n" +
                 $"FPS     {_fps:F1}\n" +
-                $"[~] toggle  (DebugHud)";
+                $"[~] toggle  [U] upgrade  [P] +parts  [B] +blue  [K] 小人  [V] 车辆  (DebugHud)";
 
             GUI.Box(new Rect(8, 8, 300, 320), "DEBUG HUD");
             GUI.Label(new Rect(18, 30, 280, 285), text);
@@ -103,6 +130,22 @@ namespace DesktopDoomsday.UI
                 case 2: return "冻原";
                 default: return "循环";
             }
+        }
+
+        /// <summary>显示两条改装线「下一级」所需零件/蓝图，方便知道多少 P/B 可升级。</summary>
+        private static string UpgradeCostLine(GameState gs)
+        {
+            var vs = ServiceLocator.Get<VehicleSystem>();
+            if (vs == null) return "(无 VehicleSystem)";
+            var sb = new System.Text.StringBuilder();
+            for (int t = 0; t < 2; t++)
+            {
+                if (vs.GetUpgradeCost(gs, gs.currentVehicle, t, out int pc, out int fc, out bool mx))
+                    sb.Append($"T{t}:{pc}件+{fc}蓝  ");
+                else if (mx)
+                    sb.Append($"T{t}:满级  ");
+            }
+            return sb.ToString().TrimEnd();
         }
     }
 }
