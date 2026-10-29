@@ -5,8 +5,9 @@ namespace DesktopDoomsday.Systems
 {
     /// <summary>
     /// 小人需求系统（SPEC 5.4）。不实现死亡（硬约束）。
-    /// 每 tick 三需求（hunger/thirst/health）按速率下降；任一值 ≤ 0 时尝试用对应物资补货，
-    /// 库存不足则保持 0 并进入 Weakened（仅降速惩罚，不致死）。
+    /// 每 tick 三需求（hunger/thirst/health）按速率下降；当某需求低于 RefillThreshold 时主动消耗对应物资补满
+    /// （food→饥饿, water→口渴, medicine→生命）。背包有货时小人始终保持健康、不进虚弱；仅当某物资耗尽，
+    /// 对应需求才真正掉到 0 并进入 Weakened（仅降速惩罚，不致死）。
     /// Weakened 时下降速率 ×1.3。三值全部 > 60 时解除 Weakened。
     /// 天气消耗修正（survivorDrainMultiplier）在 Batch 3 接入 WeatherSystem 后由当前天气配置驱动。
     /// </summary>
@@ -18,7 +19,8 @@ namespace DesktopDoomsday.Systems
         private const float DefaultHungerDrain = 0.20f;
         private const float DefaultThirstDrain = 0.25f;
         private const float DefaultHealthDrain = 0.10f;
-        private const float RestorePerConsume = 30f; // 消耗 1 单位物资恢复的需求量
+        private const float RefillThreshold = 40f;   // 需求低于此值即主动消耗对应物资补货（不再等归零）
+        private const float RestorePerConsume = 100f; // 消耗 1 单位物资将该需求补满到健康值
 
         public void Tick(GameState state, float deltaSeconds)
         {
@@ -45,7 +47,8 @@ namespace DesktopDoomsday.Systems
             Drain(ref state.thirst, tDrain * weakMult * weatherMult * deltaSeconds);
             Drain(ref state.health, hpDrain * weakMult * weatherMult * deltaSeconds);
 
-            // 补货：任一需求 ≤ 0 时尝试消耗对应物资（food→饥饿, water→口渴, medicine→生命）
+            // 补货：需求低于阈值即主动消耗对应物资（food→饥饿, water→口渴, medicine→生命），
+            // 背包有货时始终保持健康、不进虚弱；仅当该物资耗尽才真正掉到 0 并进入 Weakened（降速不致死）。
             TryRefill(ref state.hunger, "food", state);
             TryRefill(ref state.thirst, "water", state);
             TryRefill(ref state.health, "medicine", state);
@@ -78,9 +81,9 @@ namespace DesktopDoomsday.Systems
 
         private void TryRefill(ref float need, string resource, GameState state)
         {
-            if (need > 0f) return;
+            if (need > RefillThreshold) return;          // 还够用，不浪费物资
             if (_inventory.TryConsume(state, resource, 1))
-                need = RestorePerConsume;
+                need = RestorePerConsume;                // 吃一口补满
         }
     }
 }
