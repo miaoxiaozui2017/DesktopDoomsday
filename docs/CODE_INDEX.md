@@ -32,9 +32,9 @@ DesktopDoomsday/
 │   │   │   ├── DungeonSystem.cs          ✅ Batch4  副本触发 / 超时忽略 / 分支结算
 │   │   │   └── AchievementSystem.cs      🔲 Batch7  成就判定
 │   │   ├── Window/
-│   │   │   ├── TransparentWindow.cs      🔲 Batch5  Win32 透明/分层窗口
-│   │   │   ├── ClickThroughManager.cs    🔲 Batch5  点击穿透切换
-│   │   │   └── TrayManager.cs            🔲 Batch5  托盘菜单
+│   │   │   ├── TransparentWindow.cs      ✅ Batch5  Win32 无边框/分层透明/置顶（DWM 玻璃 + 相机 RGBA0）+ OnQuit 还原（红线4）
+│   │   │   ├── ClickThroughManager.cs    ✅ Batch5  全局热键 Ctrl+Shift+D 切换点击穿透 + 联动 GameLoop 5s 后台 tick
+│   │   │   └── TrayManager.cs            ✅ Batch5  托盘图标/最小化隐藏/右键菜单（显示·隐藏·穿透·退出）
 │   │   ├── UI/
 │   │   │   ├── DebugHud.cs               ✅ Batch1+2 开发期调试覆盖层（IMGUI，~ 键开关）
 │   │   │   ├── GameView.cs               ✅ 可视冲刺 可玩视图（精灵/公路滚动/车辆/小人/宝箱/天气区域色调）
@@ -91,10 +91,10 @@ DesktopDoomsday/
 - **DungeonSystem** ✅：实现 `IDungeonSystem`（Batch 4 数据层；面板 UI 留 Batch 6）。`Tick(state, dt)` 推进冷却/超时（按真实 dt），冷却结束后按 `triggerChancePerTick` 概率触发（从当前区域 `dungeonPool` 等权抽取）；`TryTrigger` 为概率触发入口。`Complete(id, branch)` 校验 pending 匹配后结算：奖励 = 同期基础挂机收益 × 分支 `rewardMultiplier`（1.8–3.0）+ 蓝图碎片，确定性随机按掉落权重分配（满足 SPEC 验收项 4「2–3 倍」）；`IgnorePending` 超时/主动忽略，重置冷却，公路照常。`GameState` 新增 `autoIgnoreDungeons` / `pauseRoadDuringDungeon`（SPEC 5.6 设置项，默认 false，Batch 6 接 UI）。另提供调试用 `ForceTrigger`。
 - **AchievementSystem** 🔲：接口已在 `SystemInterfaces.cs` 定义，实现在 Batch 7。
 
-### Window/ — 桌面窗口层（全部 🔲 Batch 5）
-- `TransparentWindow.cs`：Win32 分层/穿透/置顶（P/Invoke）。
-- `ClickThroughManager.cs`：全局快捷键切换点击穿透。
-- `TrayManager.cs`：托盘图标与右键菜单。
+### Window/ — 桌面窗口层（全部 ✅ Batch 5）
+- `TransparentWindow.cs`：Win32 无边框 + `WS_EX_LAYERED` 分层透明（DWM 扩展玻璃 + 相机已设 `RGBA(0,0,0,0)`）+ `WS_EX_TOPMOST` 置顶；`Start` 延迟一帧执行（SPEC 5.9）；`SetClickThrough(bool)` 切换 `WS_EX_TRANSPARENT`；`OnApplicationQuit`/`Restore()` 恢复原始样式，移除分层/穿透/置顶（架构红线 4）。全部 `#if UNITY_STANDALONE_WIN && !UNITY_EDITOR` 守卫，仅独立构建生效，编辑器 Play 不受影响。
+- `ClickThroughManager.cs`：低层键盘钩子（`WH_KEYBOARD_LL`）实现全局热键 **Ctrl+Shift+D** 切换点击穿透（穿透态下仍可捕获）；开启时调 `TransparentWindow.SetClickThrough(true)` 并向 `GameLoop.SetBackground(true)` 把 tick 降到 5s，关闭时反之。
+- `TrayManager.cs`：自建消息专用窗口接收托盘回调，`Shell_NotifyIcon` 托盘图标；最小化时隐藏主窗口并留托盘；右键菜单（显示窗口/隐藏窗口/切换穿透/退出）；`Update` 内手动泵消息。`OnApplicationQuit` 删除图标并销毁窗口。
 
 ### UI/
 - **DebugHud.cs** ✅：开发期调试覆盖层（IMGUI，零预制体）。订阅 `GameEvents` 实时显示里程/速度/区域/天气/小人三需求条形/物资/宝箱计数/FPS/游玩时长，`~` 键开关；并提供调试键 `U`(升级线0) / `P`(+20 零件) / `B`(+5 蓝图)。发布前可隐藏或删除；正式 UI 在 Batch 6 按 SPEC 第 9 节实现。
@@ -119,7 +119,7 @@ DesktopDoomsday/
 | — | 可视冲刺：像素美术 + 可玩视图 + 科技 HUD + 快进 + 属性页 | ✅ 已实现（随 feature/visual 合并 main） |
 | 3 | 天气 / 车辆 / 区域修正 | ✅ 已实现（随 feature/visual 合并 main） |
 | 4 | 副本系统（数据层：触发/超时忽略/分支结算） | ✅ 已实现（当前分支 feature/batch4） |
-| 5 | 桌面窗口层 | 🔲 待开发 |
+| 5 | 桌面窗口层 | ✅ 已实现（透明/置顶/穿透热键 + 托盘；仅 Windows 独立构建生效） |
 | 6 | 正式 UI / 离线报告 | 🔲 待开发 |
 | 7 | 成就 / 性能打磨 | 🔲 待开发 |
 > 注：曾评估「账号插槽 / 新游戏菜单」多存档方案（feature/visual 内），已按用户决定**回退为单份全局 `save.json`**，保持简单。清档仍靠删除 `save.json`。

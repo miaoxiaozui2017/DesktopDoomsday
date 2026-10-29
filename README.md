@@ -73,11 +73,31 @@
 
 ---
 
-## 桌面窗口特性（Batch 5 起）
-- **透明常驻**：无边框、半透明、置顶于桌面。
-- **点击穿透**：全局快捷键（如 `Ctrl+Shift+D`）切换，透明区可点穿到桌面，UI 按钮区仍可交互。
-- **托盘菜单**：最小化隐藏主窗口，托盘图标右键可显示/隐藏、暂停/继续、切换穿透、切换自动忽略副本、退出。
-- 退出时自动恢复窗口样式，不残留。
+## 桌面窗口特性（Batch 5 已实现）
+> 注意：窗口层只在 **Windows 独立构建** 生效（编辑器 Play 仍是普通窗口，便于开发）。需用 `File → Build Settings → PC, Mac & Linux Standalone → Windows → Build And Run` 验证。
+
+- **透明常驻**：无边框 + `WS_EX_LAYERED` 分层透明（DWM 玻璃 + 相机 `RGBA(0,0,0,0)`）+ `WS_EX_TOPMOST` 置顶，桌面透过透明区可见，无黑边。
+- **点击穿透**：全局快捷键 **`Ctrl+Shift+D`** 切换。开启后鼠标穿透到桌面（可点后面的窗口），同时 tick 降到 5s（后台节流）；关闭后游戏 UI 按钮正常可点。
+- **托盘菜单**：最小化时隐藏主窗口并显示托盘图标；右键图标弹出菜单：**显示窗口 / 隐藏窗口 / 切换点击穿透 / 退出**。双击托盘图标可快速显示/隐藏。
+- **退出还原**：`OnApplicationQuit` 恢复原始窗口样式（移除分层/穿透/置顶），不残留半透明/穿透窗口（架构红线 4）。
+
+### Batch 5 验收指南（桌面窗口层）
+构建前请确认 `Player Settings`（SPEC 2.2 硬设置）：
+1. `Player → Resolution and Presentation → Fullscreen Mode = Windowed`（避免全屏独占导致 DWM 失效）。
+2. `Player → Run in Background = ✅`（失去焦点仍推进）。
+3. `Quality → Anti Aliasing = Disabled`（避免透明边缘黑边）。
+4. Graphics 中若可见 `Use DXGI Flip Model Swapchain` 请 **禁用**（D3D11 后端会绕过 DWM 使 Alpha 失效）。
+5. `Camera` 已在 `Bootstrapper` 用代码设为 `Clear Flags = Solid Color` + 背景 `RGBA(0,0,0,0)`，无需手动改；`2D Pixel Perfect` 包需已导入（已在 manifest）。
+
+构建并运行后逐项验证（SPEC 验收项 7）：
+- [ ] 窗口无边框、桌面透过透明区可见、**无黑边**（透明背景与 Pixel Perfect 共存正常）。
+- [ ] 窗口置顶于其它窗口之上。
+- [ ] 按 `Ctrl+Shift+D`：开启后点击游戏透明区能选中桌面后方窗口；再按一次关闭，游戏内 UI（IMGUI 面板/属性页）可正常点击。
+- [ ] 最小化按钮：主窗口隐藏，托盘出现图标；右键图标菜单可显示/隐藏/切穿透/退出；双击图标恢复。
+- [ ] 退出程序后，系统窗口样式恢复正常（无残留半透明/穿透窗口）。
+- [ ] 开启穿透或最小化后静置，用 `F`/`G`/`J` 或观察里程增长，确认 5s 后台 tick 仍在推进（或回编辑器用快进验证数值逻辑不变）。
+
+> 平台提示：上述均为 Win32 行为，本环境无法在 Unity 内编译/运行验证；首次构建若托盘或穿透细节有出入（如窗口类名校验、DWM 版本差异），按 Console 报错微调即可，逻辑骨架完整。
 
 ---
 
@@ -127,8 +147,10 @@
 - ✅ **Batch 2**：公路推进、宝箱、库存、小人需求（已合并 `main` 并推送）。
 - ✅ **Batch 3**：天气系统、车辆系统、区域修正（随 feature/visual 合并 `main`）。
 - ✅ **可视冲刺**（提前实现 Batch 6 画面）：程序化像素美术（28 张精灵）+ 可玩视图 + 科技 HUD + 快进 + 小人/车辆属性页（随 feature/visual 合并 `main`）。
-- ✅ **Batch 4**：副本系统**数据层**（触发 / 超时忽略 / 分支结算），含调试键 `D`/`C` 与副本期间小人走路动画；副本面板 UI 留 Batch 6（当前分支 `feature/batch4`）。
-- 🔲 **Batch 5–7**：桌面窗口层、正式 uGUI UI/离线报告、成就/打磨。
+- ✅ **Batch 4**：副本系统**数据层**（触发 / 超时忽略 / 分支结算），含调试键 `D`/`C` 与副本期间小人走路动画；副本面板 UI 留 Batch 6。
+- ✅ **Batch 5**：桌面窗口层（透明/置顶/穿透热键 `Ctrl+Shift+D` + 托盘菜单 + 退出还原，仅 Windows 构建生效）。
+- 🔲 **Batch 6**：正式 uGUI UI / 离线报告（科技感 HUD、副本面板，替换当前 IMGUI 调试层）。
+- 🔲 **Batch 7**：成就系统（10 个）+ 性能打磨（CPU<3% / 内存<300MB）。
 
 详细代码地图见 [`docs/CODE_INDEX.md`](docs/CODE_INDEX.md)，实现契约见 [`docs/SPEC.md`](docs/SPEC.md)。
 

@@ -4,6 +4,7 @@ using DesktopDoomsday.Core;
 using DesktopDoomsday.Data;
 using DesktopDoomsday.Systems;
 using DesktopDoomsday.UI;
+using DesktopDoomsday.Window;
 
 namespace DesktopDoomsday.Core
 {
@@ -118,7 +119,16 @@ namespace DesktopDoomsday.Core
             if (FindObjectOfType<FastForward>() == null) gameObject.AddComponent<FastForward>();
             if (FindObjectOfType<SurvivorInfoPanel>() == null) gameObject.AddComponent<SurvivorInfoPanel>();
             if (FindObjectOfType<VehicleInfoPanel>() == null) gameObject.AddComponent<VehicleInfoPanel>();
+            EnsureWindowLayer();
             EnsurePixelPerfect();
+        }
+
+        /// <summary>桌面窗口层（Batch 5）：透明/置顶/穿透 + 托盘。仅在 Windows 独立构建生效，编辑器为 no-op。</summary>
+        private void EnsureWindowLayer()
+        {
+            if (FindObjectOfType<TransparentWindow>() == null) gameObject.AddComponent<TransparentWindow>();
+            if (FindObjectOfType<ClickThroughManager>() == null) gameObject.AddComponent<ClickThroughManager>();
+            if (FindObjectOfType<TrayManager>() == null) gameObject.AddComponent<TrayManager>();
         }
 
         /// <summary>反射式挂 Pixel Perfect Camera：包未导入时静默跳过，不产生硬编译依赖。</summary>
