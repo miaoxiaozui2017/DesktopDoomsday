@@ -56,7 +56,7 @@ namespace DesktopDoomsday.UI
             if (fr != null)
                 GUI.DrawTexture(new Rect(p.x + w - 132f, y, 116f, 80f), fr.texture, ScaleMode.ScaleToFit);
 
-            int dataW = w - 156;
+            int dataW = (int)(w - 156f);
             string vName = VehicleName(s.currentVehicle);
             GUI.Label(new Rect(x, y, dataW, 18f), $"当前：{vName}", _text); y += 22f;
 

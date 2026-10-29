@@ -52,7 +52,7 @@ namespace DesktopDoomsday.UI
             if (_portrait != null)
                 GUI.DrawTexture(new Rect(p.x + w - 120f, y, 96f, 160f), _portrait.texture, ScaleMode.ScaleToFit);
 
-            int dataW = w - 150;
+            int dataW = (int)(w - 150f);
             GUI.Label(new Rect(x, y, dataW, 18f), $"状态  {SurvName(s.survivorState)}", _text); y += 24f;
             DrawBar(x, y, dataW, s.hunger / 100f, "饥饿"); y += 20f;
             DrawBar(x, y, dataW, s.thirst / 100f, "口渴"); y += 20f;

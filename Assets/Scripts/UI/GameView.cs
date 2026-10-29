@@ -17,7 +17,7 @@ namespace DesktopDoomsday.UI
     {
         [Header("车辆（2 帧轮子）")]
         public Sprite pickup0, pickup1, van0, van1, moto0, moto1;
-        [Header("小人（idle / walk 循环）")]
+        [Header("小人（idle 常驻；walk0/walk1 预留给 Batch 4 副本移动）")]
         public Sprite survivorIdle, survivorWalk0, survivorWalk1;
         [Header("宝箱")]
         public Sprite chestSprite;
@@ -182,16 +182,9 @@ namespace DesktopDoomsday.UI
 
             if (_survivor != null)
             {
-                var p = _survBase;
-                if (moving)
-                {
-                    // 左右轻摆 + 上下微跳，强化"跟在车旁走路"的观感
-                    p.x += Mathf.Sin(Time.time * 6f) * 0.05f;
-                    p.y += Mathf.Abs(Mathf.Sin(Time.time * 9f)) * 0.02f;
-                    _survivor.sprite = _frame == 0 ? survivorWalk0 : survivorWalk1;
-                }
-                else _survivor.sprite = survivorIdle;
-                _survivor.transform.localPosition = p;
+                // 常驻待机：不跟随行走（移动/走路动画留待 Batch 4 副本内再启用）
+                _survivor.sprite = survivorIdle;
+                _survivor.transform.localPosition = _survBase;
             }
 
             // 宝箱弹出

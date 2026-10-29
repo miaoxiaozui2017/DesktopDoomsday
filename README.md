@@ -98,19 +98,34 @@
 
 ## 如何运行（开发态）
 1. 用 Unity Hub 打开本工程根目录（已含 `ProjectSettings` / `Packages`）。
-2. `Assets/Scenes/Main.unity` 挂 `Bootstrapper` + `GameLoop`，并把 `DebugHud` 也挂上。
-3. `Assets/Resources/` 右键 `Create → DesktopDoomsday → GameConfig` 填表（也可先不填，系统有兜底常量）。
-4. 按 **Play**：公路自动推进；按 **`~`** 键开关调试面板，实时看里程/速度/小人/天气/物资/宝箱计数/FPS。
+2. `Assets/Scenes/Main.unity` 已预挂 `Bootstrapper` + `GameLoop` + `DebugHud`，直接打开即可。
+3. `Assets/Resources/` 右键 `Create → DesktopDoomsday → GameConfig` 填表（也可先不填，系统有兜底常量；或菜单 `DesktopDoomsday → 创建默认 GameConfig` 一键生成基线）。
+4. **最大化 Game 视图标签页**（或勾 `Maximize On Play`）后按 **Play**：公路自动推进，精灵与 HUD 即时可见。
 
-> 正式美术与玩法 UI（科技感 HUD、副本面板、离线报告）将在 Batch 6 落地，开发期请用 `DebugHud` 观测。
+### 开发期按键（IMGUI 调试层，正式版由 Batch 6 uGUI 取代）
+| 键 | 作用 |
+|---|---|
+| `M` | 开关科技 HUD（左下，默认开） |
+| `K` | 小人属性页 |
+| `V` | 车辆属性页 |
+| `~` | 调试数值面板（左上，默认开） |
+| `F`（长按） | 加速 ×20 |
+| `G` / `J` | 跳 60s / 300s |
+| `U` / `P` / `B` | 升级线 0 / +20 零件 / +5 蓝图（仅调试验证改装） |
+
+> 提示：Game 视图若设在固定高分辨率（如 1920×1080）但编辑器窗格较小，会被整体缩放，IMGUI 面板缩到角落不易找——最大化窗格或用 **Free Aspect** 即可。`Rendering at an odd-numbered resolution` 是 Pixel Perfect Camera 的开发期警告（渲染高度奇数），不影响打包，可忽略。
+
+> 正式美术与玩法 UI（科技感 HUD、副本面板、离线报告）将在 Batch 6 以 uGUI + Canvas Scaler 落地，开发期请用上述 IMGUI 层观测。
 
 ---
 
 ## 项目状态与开发进度
 本工程采用 **SPEC 驱动开发**（先定义接口/数据结构/行为规范，再按规格生成代码）。当前进度：
-- ✅ **Batch 1**：核心数据、循环骨架、事件总线、存档。
-- ✅ **Batch 2**：公路推进、宝箱、库存、小人需求（已合并 `main` 并推送 GitHub）。
-- 🔲 **Batch 3–7**：天气/车辆/区域、副本、桌面窗口层、正式 UI/离线报告、成就/打磨。
+- ✅ **Batch 1**：核心数据、循环骨架、事件总线、存档（已合并 `main` 并推送）。
+- ✅ **Batch 2**：公路推进、宝箱、库存、小人需求（已合并 `main` 并推送）。
+- ✅ **Batch 3**：天气系统、车辆系统、区域修正（随 feature/visual 合并 `main`）。
+- ✅ **可视冲刺**（提前实现 Batch 6 画面）：程序化像素美术（28 张精灵）+ 可玩视图 + 科技 HUD + 快进 + 小人/车辆属性页（随 feature/visual 合并 `main`）。
+- 🔲 **Batch 4–7**：副本、桌面窗口层、正式 uGUI UI/离线报告、成就/打磨。
 
 详细代码地图见 [`docs/CODE_INDEX.md`](docs/CODE_INDEX.md)，实现契约见 [`docs/SPEC.md`](docs/SPEC.md)。
 

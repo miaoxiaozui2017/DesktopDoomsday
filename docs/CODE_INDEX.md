@@ -27,8 +27,8 @@ DesktopDoomsday/
 │   │   │   ├── ChestSystem.cs            ✅ Batch2  宝箱生成 / 开启 / 掉落
 │   │   │   ├── InventorySystem.cs        ✅ Batch2  物资库存增删查
 │   │   │   ├── SurvivorSystem.cs         ✅ Batch2  小人三需求 / 虚弱状态（不致死）
-│   │   │   ├── WeatherSystem.cs          🔲 Batch3  天气轮换与数值修正
-│   │   │   ├── VehicleSystem.cs          🔲 Batch3  车辆选择 / 改装线
+│   │   │   ├── WeatherSystem.cs          ✅ Batch3  天气轮换与数值修正
+│   │   │   ├── VehicleSystem.cs          ✅ Batch3  车辆选择 / 改装线 / 改装成本查询
 │   │   │   ├── DungeonSystem.cs          🔲 Batch4  副本触发 / 分支结算
 │   │   │   └── AchievementSystem.cs      🔲 Batch7  成就判定
 │   │   ├── Window/
@@ -37,6 +37,11 @@ DesktopDoomsday/
 │   │   │   └── TrayManager.cs            🔲 Batch5  托盘菜单
 │   │   ├── UI/
 │   │   │   ├── DebugHud.cs               ✅ Batch1+2 开发期调试覆盖层（IMGUI，~ 键开关）
+│   │   │   ├── GameView.cs               ✅ 可视冲刺 可玩视图（精灵/公路滚动/车辆/小人/宝箱/天气区域色调）
+│   │   │   ├── TechHud.cs                ✅ 可视冲刺 科技感 HUD 雏形（IMGUI，M 键开关，左下）
+│   │   │   ├── FastForward.cs            ✅ 可视冲刺 开发期快进（F 长按 ×20 / G +60s / J +300s）
+│   │   │   ├── SurvivorInfoPanel.cs      ✅ 可视冲刺 小人属性页（K 键）
+│   │   │   ├── VehicleInfoPanel.cs       ✅ 可视冲刺 车辆属性页（V 键）
 │   │   │   ├── MainHud.cs                🔲 Batch6  正式 HUD（科技感 uGUI）
 │   │   │   ├── DungeonPrompt.cs          🔲 Batch6  非模态副本提示
 │   │   │   ├── DungeonPanel.cs           🔲 Batch6  副本分支面板
@@ -46,7 +51,9 @@ DesktopDoomsday/
 │   │       ├── GameConfig.cs             ✅ Batch1  ScriptableObject 静态配置表及配套类
 │   │       └── DTO/
 │   │           └── SaveData.cs           ✅ Batch1  存档 DTO
-│   ├── Art/                              🔲 美术资源（Batch 5/6 起按 SPEC 第 9 节填充）
+│   ├── Art/                              ✅ 可视冲刺 程序化生成 28 张像素精灵（Sprites/Vehicles/Items/Chests/Weather/Zones）
+│   ├── Editor/
+│   │   └── DefaultGameConfigCreator.cs   ✅ 可视冲刺 菜单项创建默认 GameConfig.asset（3车/3区/4天气/2副本/10成就）
 │   ├── Audio/                            🔲 音频资源（后续批次）
 │   └── Resources/
 │       └── GameConfig.asset              🔲 GameConfig 资产（在 Unity Inspector 按 SPEC 4.2 填写）
@@ -79,7 +86,9 @@ DesktopDoomsday/
 - **ChestSystem.cs** ✅：实现 `IChestSystem`。`Tick` 处理里程宝箱（阈值触发，开启后重随机阈值，摩托 −10%）与随机宝箱（基础概率 × 天气加成 × 车辆加成）；`Open` 按 `ResourceConfig` 权重掉落 1–3 种物资，副本宝箱额外掉蓝图碎片。全程走 `DeterministicRandom(rngSeed)`，每次调用后写回 `state.rngSeed` 保证可复现。
 - **InventorySystem.cs** ✅：实现 `IInventorySystem`。库存即 `GameState` 五个 int 字段（food/water/medicine/fuel/parts）。`Add / TryConsume / GetAmount`，变化时触发 `OnInventoryChanged`。被 ChestSystem（入库）与 SurvivorSystem（消耗）复用。
 - **SurvivorSystem.cs** ✅：实现 `ISurvivorSystem`。每 tick 三需求（hunger/thirst/health）按配置或兜底速率下降，叠加 Weakened ×1.3 与天气消耗修正；任一值 ≤0 时尝试消耗 1 单位对应物资补货（food→饥饿 / water→口渴 / medicine→生命），库存不足则保持 0 并进入 `Weakened`（**仅降速惩罚，不致死**）；三值全部 >60 解除 Weakened。状态切换触发 `OnSurvivorStateChanged`。
-- **WeatherSystem / VehicleSystem / DungeonSystem / AchievementSystem** 🔲：接口已在 `SystemInterfaces.cs` 定义，实现分别在 Batch 3 / 3 / 4 / 7。
+- **WeatherSystem** ✅：实现 `IWeatherSystem`。按当前区域权重随机抽取天气、持续随机秒数；仅切换顶部小图标与场景色调（`ApplyWeather` 色调修正），不弹模态窗；`Initialize` 设首个天气，`Tick` 推进 `weatherRemainingSeconds` 归零时重抽。`GetWeatherSpeedFactor / GetWeatherChestChanceMod / GetWeatherConsumptionMod` 供公路/宝箱/小人取修正。
+- **VehicleSystem** ✅：实现 `IVehicleSystem`。`SelectVehicle` 选定车辆（三选一、默认皮卡、不可换）；`GetSpeedBonus` 返改装加成；`GetUpgradeCost(track)` 返回下一级所需零件/蓝图（0→1: 15 件+1 蓝；1→2: 30 件+2 蓝）；`TryUpgrade` 校验并扣除、写 `upgradeLevels`。
+- **DungeonSystem / AchievementSystem** 🔲：接口已在 `SystemInterfaces.cs` 定义，实现分别在 Batch 4 / 7。
 
 ### Window/ — 桌面窗口层（全部 🔲 Batch 5）
 - `TransparentWindow.cs`：Win32 分层/穿透/置顶（P/Invoke）。
@@ -87,8 +96,12 @@ DesktopDoomsday/
 - `TrayManager.cs`：托盘图标与右键菜单。
 
 ### UI/
-- **DebugHud.cs** ✅：开发期调试覆盖层（IMGUI，零预制体）。订阅 `GameEvents` 实时显示里程/速度/区域/天气/小人三需求条形/物资/宝箱计数/FPS/游玩时长，`~` 键开关。发布前可隐藏或删除；正式 UI 在 Batch 6 按 SPEC 第 9 节实现。
-- **MainHud / DungeonPrompt / DungeonPanel / OfflineReport** 🔲：Batch 6 正式 UI，订阅事件不轮询。
+- **DebugHud.cs** ✅：开发期调试覆盖层（IMGUI，零预制体）。订阅 `GameEvents` 实时显示里程/速度/区域/天气/小人三需求条形/物资/宝箱计数/FPS/游玩时长，`~` 键开关；并提供调试键 `U`(升级线0) / `P`(+20 零件) / `B`(+5 蓝图)。发布前可隐藏或删除；正式 UI 在 Batch 6 按 SPEC 第 9 节实现。
+- **GameView.cs** ✅（可视冲刺）：可玩视图。`Awake` 在 Editor 下从 `Assets/Art/Sprites` 自动载入精灵；`BuildScene` 建背景/路带(5 块平铺)/车辆/小人/宝箱/天气图标；`Update` 滚动公路、车辆轮子帧、宝箱弹出；`FitBackground` 铺满相机视野消除黑边，`PlaceWeatherIcon` 锁右上角。**小人当前常驻待机**（idle 帧固定），走路帧预留给 Batch 4 副本。
+- **TechHud.cs** ✅（可视冲刺）：科技感 HUD 雏形（IMGUI，暗玻璃+霓虹描边+条形进度），`M` 键开关、默认显示左下；只读 `GameState` 渲染里程/天气/三项需求/物资，不反写。
+- **FastForward.cs** ✅（可视冲刺）：开发期快进。`F` 长按加速 ×20、`G` 跳 60s、`J` 跳 300s，便于快速验收长线数值。
+- **SurvivorInfoPanel.cs / VehicleInfoPanel.cs** ✅（可视冲刺）：`K`/`V` 键独立属性页（小人三维需求+预留项 / 车型+改装线等级与成本+速度加成）。
+- **MainHud / DungeonPrompt / DungeonPanel / OfflineReport** 🔲：Batch 6 正式 UI（uGUI + Canvas Scaler，分辨率自适应），订阅事件不轮询。
 
 ### Data/
 - **Enums.cs** ✅：枚举 `VehicleId(Pickup/Van/Motorcycle)`、`WeatherId(Sunny/Rainstorm/Sandstorm/ExtremeCold)`、`DungeonId(WarehouseRaid/ConvoyChase)`、`ChestType(Mileage/Random/Dungeon)`、`SurvivorState(Normal/Weakened)`、`ZoneId(Suburb/Desert/Tundra)`。
@@ -102,8 +115,10 @@ DesktopDoomsday/
 |------|------|------|
 | 1 | 核心数据 / 循环骨架 / 事件 / 存档 | ✅ 已实现并合并 main |
 | 2 | 公路 / 宝箱 / 库存 / 小人 | ✅ 已实现并合并 main |
-| 3 | 天气 / 车辆 / 区域修正 | 🔲 待开发 |
+| — | 可视冲刺：像素美术 + 可玩视图 + 科技 HUD + 快进 + 属性页 | ✅ 已实现（随 feature/visual 合并 main） |
+| 3 | 天气 / 车辆 / 区域修正 | ✅ 已实现（随 feature/visual 合并 main） |
 | 4 | 副本系统 | 🔲 待开发 |
 | 5 | 桌面窗口层 | 🔲 待开发 |
 | 6 | 正式 UI / 离线报告 | 🔲 待开发 |
 | 7 | 成就 / 性能打磨 | 🔲 待开发 |
+> 注：曾评估「账号插槽 / 新游戏菜单」多存档方案（feature/visual 内），已按用户决定**回退为单份全局 `save.json`**，保持简单。清档仍靠删除 `save.json`。
