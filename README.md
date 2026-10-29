@@ -112,6 +112,8 @@
 | `F`（长按） | 加速 ×20 |
 | `G` / `J` | 跳 60s / 300s |
 | `U` / `P` / `B` | 升级线 0 / +20 零件 / +5 蓝图（仅调试验证改装） |
+| `D` | 强制触发一个副本（跳过概率/冷却，便于无面板时验收 Batch 4） |
+| `C` | 以分支 0 完成当前待处理副本（验收奖励结算） |
 
 > 提示：Game 视图若设在固定高分辨率（如 1920×1080）但编辑器窗格较小，会被整体缩放，IMGUI 面板缩到角落不易找——最大化窗格或用 **Free Aspect** 即可。`Rendering at an odd-numbered resolution` 是 Pixel Perfect Camera 的开发期警告（渲染高度奇数），不影响打包，可忽略。
 
@@ -125,7 +127,8 @@
 - ✅ **Batch 2**：公路推进、宝箱、库存、小人需求（已合并 `main` 并推送）。
 - ✅ **Batch 3**：天气系统、车辆系统、区域修正（随 feature/visual 合并 `main`）。
 - ✅ **可视冲刺**（提前实现 Batch 6 画面）：程序化像素美术（28 张精灵）+ 可玩视图 + 科技 HUD + 快进 + 小人/车辆属性页（随 feature/visual 合并 `main`）。
-- 🔲 **Batch 4–7**：副本、桌面窗口层、正式 uGUI UI/离线报告、成就/打磨。
+- ✅ **Batch 4**：副本系统**数据层**（触发 / 超时忽略 / 分支结算），含调试键 `D`/`C` 与副本期间小人走路动画；副本面板 UI 留 Batch 6（当前分支 `feature/batch4`）。
+- 🔲 **Batch 5–7**：桌面窗口层、正式 uGUI UI/离线报告、成就/打磨。
 
 详细代码地图见 [`docs/CODE_INDEX.md`](docs/CODE_INDEX.md)，实现契约见 [`docs/SPEC.md`](docs/SPEC.md)。
 

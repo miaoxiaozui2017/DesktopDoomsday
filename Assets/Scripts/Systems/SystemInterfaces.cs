@@ -49,6 +49,9 @@ namespace DesktopDoomsday.Systems
 
     public interface IDungeonSystem
     {
+        /// <summary>每 tick 驱动：推进冷却/超时，冷却结束后按概率触发（替代原 TryTrigger 的计时职责）。</summary>
+        void Tick(GameState state, float deltaSeconds);
+        /// <summary>在冷却结束且无非待处理副本时，按概率生成待处理副本。返回是否新触发。</summary>
         bool TryTrigger(GameState state);
         DungeonResult Complete(DungeonId id, int chosenBranchIndex, GameState state);
         void IgnorePending(GameState state);

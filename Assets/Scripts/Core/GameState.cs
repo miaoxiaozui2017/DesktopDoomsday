@@ -42,6 +42,10 @@ namespace DesktopDoomsday.Core
         public DungeonId? pendingDungeon;
         public float pendingDungeonTimeout;
 
+        // 副本设置项（SPEC 5.6，Batch 6 接 UI；默认 false）
+        public bool autoIgnoreDungeons;       // 开启后副本提示不出现，冷却照常
+        public bool pauseRoadDuringDungeon;   // 开启后打开副本面板时暂停公路 tick
+
         // 时间
         public long lastSaveUnixMs;
         public float playTimeSeconds;
