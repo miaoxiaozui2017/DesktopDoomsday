@@ -3,7 +3,7 @@
 """
 Desktop Doomsday — 程序化像素美术生成器
 =======================================
-由代码绘制全部精灵并输出为 PNG，永久落库 Assets/Art/。
+由代码绘制全部精灵并输出为 PNG，永久落库 Assets/Resources/Art/（Runtime Resources 目录，编辑器与构建均可加载）。
 风格：对齐 SPEC 第 9 节（高清像素风 + 鲜明配色 + 科技感）。
 所有精灵在「基准网格」上 1 像素绘制，再整数倍最近邻放大，保证 Unity 导入后锐利。
 
@@ -50,7 +50,7 @@ VEH_COLOR = {
 }
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ART = os.path.join(ROOT, "Assets", "Art")
+ART = os.path.join(ROOT, "Assets", "Resources", "Art")
 
 
 # ---------------------------------------------------------------------------

@@ -3,9 +3,6 @@ using UnityEngine;
 using DesktopDoomsday.Core;
 using DesktopDoomsday.Data;
 using DesktopDoomsday.Systems;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 namespace DesktopDoomsday.UI
 {
@@ -25,9 +22,7 @@ namespace DesktopDoomsday.UI
         private void Awake()
         {
             _white = Texture2D.whiteTexture;
-#if UNITY_EDITOR
             LoadFrames();
-#endif
         }
 
         private void Update()
@@ -124,21 +119,19 @@ namespace DesktopDoomsday.UI
             switch (id) { case VehicleId.Van: return "厢式货车"; case VehicleId.Motorcycle: return "摩托"; default: return "皮卡"; }
         }
 
-#if UNITY_EDITOR
         private void LoadFrames()
         {
             string[] paths = {
-                "Assets/Art/Sprites/Vehicles/pickup_0.png",
-                "Assets/Art/Sprites/Vehicles/van_0.png",
-                "Assets/Art/Sprites/Vehicles/moto_0.png"
+                "Art/Sprites/Vehicles/pickup_0",
+                "Art/Sprites/Vehicles/van_0",
+                "Art/Sprites/Vehicles/moto_0"
             };
             for (int i = 0; i < 3; i++)
             {
-                var s = AssetDatabase.LoadAssetAtPath<Sprite>(paths[i]);
+                var s = Resources.Load<Sprite>(paths[i]);
                 if (s != null && s.texture != null) s.texture.filterMode = FilterMode.Point;
                 _vehFrames[i] = s;
             }
         }
-#endif
     }
 }

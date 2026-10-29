@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-修正 Assets/Art/Sprites 下 PNG 的 .meta 导入设置：
+修正 Assets/Resources/Art/Sprites 下 PNG 的 .meta 导入设置：
   textureType: 8 (Sprite) / spriteMode: 1 (Single) /
   filterMode: 0 (Point) / enableMipMap: 0 / textureCompression: 0 (Uncompressed)
 用于首次导入时像素导入器尚未编译完成、导致被当成 Default 纹理的情况。
@@ -10,7 +10,7 @@ Unity 检测到 meta 变化会自动重新导入。
 import os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BASE = os.path.join(ROOT, "Assets", "Art", "Sprites")
+BASE = os.path.join(ROOT, "Assets", "Resources", "Art", "Sprites")
 
 REPL = [
     ("textureType: 0", "textureType: 8"),

@@ -535,4 +535,4 @@ Assets/
 - **Batch 6（UI）**：所有正式 UI 落地 9.4 科技感规范；`DebugHud`（IMGUI）仅开发期调试，不计入正式风格，二者职责分离。
 - **Batch 7（打磨）**：统一调色板（9.3）、确认像素锐利度、科技 UI 性能验收（CPU <3% / 内存 <300MB）。
 
-> 注：`Assets/Art`、`Assets/Audio` 已在第 3 节目录结构中预留；本节的 Palette/Weather 子目录与命名为其细化。
+> 注：`Assets/Art`、`Assets/Audio` 已在第 3 节目录结构中预留；本节的 Palette/Weather 子目录与命名为其细化。实际像素精灵生成到 `Assets/Resources/Art/Sprites/`（置于 Resources 下以保证打包构建可加载，运行时经 `Resources.Load` 取用）。

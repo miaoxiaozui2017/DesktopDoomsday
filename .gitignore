@@ -11,6 +11,11 @@ sysinfo.txt
 
 # ===== 重要：保留 .meta 文件（Unity 资源依赖），不要忽略 =====
 
+# ===== Unity 构建产物（Build And Run 输出，禁止提交） =====
+Output*/
+Build-*/
+
+
 # ===== IDE / 编辑器 =====
 .vs/
 .idea/

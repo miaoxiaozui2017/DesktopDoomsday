@@ -1,16 +1,13 @@
 using UnityEngine;
 using DesktopDoomsday.Core;
 using DesktopDoomsday.Data;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 namespace DesktopDoomsday.UI
 {
     /// <summary>
     /// 幸存者独立属性页（按 K 单独调取）。
     /// 展示小人三维数据（状态 + 饥饿/口渴/健康），并预留后续属性扩展位。
-    /// 仅读取 GameState，不反写。精灵在 Editor 下自动载入肖像。
+    /// 仅读取 GameState，不反写。精灵从 Resources 载入肖像。
     /// </summary>
     public class SurvivorInfoPanel : MonoBehaviour
     {
@@ -23,9 +20,7 @@ namespace DesktopDoomsday.UI
         private void Awake()
         {
             _white = Texture2D.whiteTexture;
-#if UNITY_EDITOR
             _portrait = LoadPortrait();
-#endif
         }
 
         private void Update()
@@ -102,13 +97,11 @@ namespace DesktopDoomsday.UI
         private static string SurvName(SurvivorState s) => s == SurvivorState.Weakened ? "虚弱" : "正常";
         private static string ZoneName(int idx) { switch (idx) { case 1: return "荒漠"; case 2: return "冻原"; default: return "城郊"; } }
 
-#if UNITY_EDITOR
         private static Sprite LoadPortrait()
         {
-            var s = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Sprites/Survivor/survivor_idle.png");
+            var s = Resources.Load<Sprite>("Art/Sprites/Survivor/survivor_idle");
             if (s != null && s.texture != null) s.texture.filterMode = FilterMode.Point;
             return s;
         }
-#endif
     }
 }

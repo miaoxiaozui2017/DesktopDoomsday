@@ -51,7 +51,7 @@ DesktopDoomsday/
 │   │       ├── GameConfig.cs             ✅ Batch1  ScriptableObject 静态配置表及配套类
 │   │       └── DTO/
 │   │           └── SaveData.cs           ✅ Batch1  存档 DTO
-│   ├── Art/                              ✅ 可视冲刺 程序化生成 28 张像素精灵（Sprites/Vehicles/Items/Chests/Weather/Zones）
+│   ├── Resources/Art/Sprites/            ✅ 可视冲刺 程序化生成 28 张像素精灵（Vehicles/Items/Chests/Weather/Zones/Survivor），置于 Resources 下以保证打包构建也能加载
 │   ├── Editor/
 │   │   └── DefaultGameConfigCreator.cs   ✅ 可视冲刺 菜单项创建默认 GameConfig.asset（3车/3区/4天气/2副本/10成就）
 │   ├── Audio/                            🔲 音频资源（后续批次）
@@ -98,7 +98,7 @@ DesktopDoomsday/
 
 ### UI/
 - **DebugHud.cs** ✅：开发期调试覆盖层（IMGUI，零预制体）。订阅 `GameEvents` 实时显示里程/速度/区域/天气/小人三需求条形/物资/宝箱计数/FPS/游玩时长，`~` 键开关；并提供调试键 `U`(升级线0) / `P`(+20 零件) / `B`(+5 蓝图)。发布前可隐藏或删除；正式 UI 在 Batch 6 按 SPEC 第 9 节实现。
-- **GameView.cs** ✅（可视冲刺）：可玩视图。`Awake` 在 Editor 下从 `Assets/Art/Sprites` 自动载入精灵；`BuildScene` 建背景/路带(5 块平铺)/车辆/小人/宝箱/天气图标；`Update` 滚动公路、车辆轮子帧、宝箱弹出；`FitBackground` 铺满相机视野消除黑边，`PlaceWeatherIcon` 锁右上角。小人**常驻待机**（idle 帧），**副本待处理时切换走路帧并左右轻摆**（满足「遇副本测试小人移动能力」），Weakened 变红。
+- **GameView.cs** ✅（可视冲刺）：可玩视图。`Awake` 从 `Resources/Art/Sprites` 载入精灵（`Resources.Load`，编辑器与 Windows 构建通用，此前仅在 Editor 用 `AssetDatabase` 导致打包后画面空白，已修正）；`BuildScene` 建背景/路带(5 块平铺)/车辆/小人/宝箱/天气图标；`Update` 滚动公路、车辆轮子帧、宝箱弹出；`FitBackground` 铺满相机视野消除黑边，`PlaceWeatherIcon` 锁右上角。小人**常驻待机**（idle 帧），**副本待处理时切换走路帧并左右轻摆**（满足「遇副本测试小人移动能力」），Weakened 变红。
 - **TechHud.cs** ✅（可视冲刺）：科技感 HUD 雏形（IMGUI，暗玻璃+霓虹描边+条形进度），`M` 键开关、默认显示左下；只读 `GameState` 渲染里程/天气/三项需求/物资，不反写。
 - **FastForward.cs** ✅（可视冲刺）：开发期快进。`F` 长按加速 ×20、`G` 跳 60s、`J` 跳 300s，便于快速验收长线数值。
 - **SurvivorInfoPanel.cs / VehicleInfoPanel.cs** ✅（可视冲刺）：`K`/`V` 键独立属性页（小人三维需求+预留项 / 车型+改装线等级与成本+速度加成）。

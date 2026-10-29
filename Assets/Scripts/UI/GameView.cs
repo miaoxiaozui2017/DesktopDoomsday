@@ -1,16 +1,13 @@
 using UnityEngine;
 using DesktopDoomsday.Core;
 using DesktopDoomsday.Data;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 namespace DesktopDoomsday.UI
 {
     /// <summary>
     /// 可玩可视化层（Batch 6 简化雏形，提前实现）。
     /// 订阅 GameEvents 把 GameState 变成画面：滚动公路 + 车辆 + 小人 + 宝箱弹出 + 天气/区域色调。
-    /// 精灵在 Editor 下自动从 Assets/Art/Sprites 载入（AssetDatabase），Play 即可见，无需手动拖拽。
+    /// 精灵从 Resources/Art/Sprites 载入（Resources.Load），编辑器与 Windows 构建通用，无需手动拖拽。
     /// 说明：离散变化走事件；每帧只读取 currentSpeed / currentVehicle 做动画，不反写状态。
     /// </summary>
     public class GameView : MonoBehaviour
@@ -43,9 +40,7 @@ namespace DesktopDoomsday.UI
 
         private void Awake()
         {
-#if UNITY_EDITOR
-            LoadSpritesEditor();
-#endif
+            LoadSprites();
             BuildScene();
         }
 
@@ -292,54 +287,48 @@ namespace DesktopDoomsday.UI
             }
         }
 
-#if UNITY_EDITOR
-        private void LoadSpritesEditor()
+        /// <summary>
+        /// 从 Resources/Art/Sprites 载入精灵（编辑器与 Windows 构建通用）。
+        /// 原先用 AssetDatabase 仅在编辑器生效，打包后精灵字段全空导致画面空白；
+        /// 改为 Resources.Load 后，构建内也能正确加载。
+        /// </summary>
+        private void LoadSprites()
         {
-            pickup0 = LoadSprite("Assets/Art/Sprites/Vehicles/pickup_0.png");
-            pickup1 = LoadSprite("Assets/Art/Sprites/Vehicles/pickup_1.png");
-            van0 = LoadSprite("Assets/Art/Sprites/Vehicles/van_0.png");
-            van1 = LoadSprite("Assets/Art/Sprites/Vehicles/van_1.png");
-            moto0 = LoadSprite("Assets/Art/Sprites/Vehicles/moto_0.png");
-            moto1 = LoadSprite("Assets/Art/Sprites/Vehicles/moto_1.png");
+            pickup0 = LoadSprite("Art/Sprites/Vehicles/pickup_0");
+            pickup1 = LoadSprite("Art/Sprites/Vehicles/pickup_1");
+            van0 = LoadSprite("Art/Sprites/Vehicles/van_0");
+            van1 = LoadSprite("Art/Sprites/Vehicles/van_1");
+            moto0 = LoadSprite("Art/Sprites/Vehicles/moto_0");
+            moto1 = LoadSprite("Art/Sprites/Vehicles/moto_1");
 
-            survivorIdle = LoadSprite("Assets/Art/Sprites/Survivor/survivor_idle.png");
-            survivorWalk0 = LoadSprite("Assets/Art/Sprites/Survivor/survivor_walk0.png");
-            survivorWalk1 = LoadSprite("Assets/Art/Sprites/Survivor/survivor_walk1.png");
+            survivorIdle = LoadSprite("Art/Sprites/Survivor/survivor_idle");
+            survivorWalk0 = LoadSprite("Art/Sprites/Survivor/survivor_walk0");
+            survivorWalk1 = LoadSprite("Art/Sprites/Survivor/survivor_walk1");
 
-            chestSprite = LoadSprite("Assets/Art/Sprites/Chests/chest_random.png");
+            chestSprite = LoadSprite("Art/Sprites/Chests/chest_random");
 
             zoneBg = new Sprite[3];
             zoneRoad = new Sprite[3];
-            zoneBg[0] = LoadSprite("Assets/Art/Sprites/Zones/bg_suburb.png");
-            zoneBg[1] = LoadSprite("Assets/Art/Sprites/Zones/bg_desert.png");
-            zoneBg[2] = LoadSprite("Assets/Art/Sprites/Zones/bg_tundra.png");
-            zoneRoad[0] = LoadSprite("Assets/Art/Sprites/Zones/road_suburb.png");
-            zoneRoad[1] = LoadSprite("Assets/Art/Sprites/Zones/road_desert.png");
-            zoneRoad[2] = LoadSprite("Assets/Art/Sprites/Zones/road_tundra.png");
+            zoneBg[0] = LoadSprite("Art/Sprites/Zones/bg_suburb");
+            zoneBg[1] = LoadSprite("Art/Sprites/Zones/bg_desert");
+            zoneBg[2] = LoadSprite("Art/Sprites/Zones/bg_tundra");
+            zoneRoad[0] = LoadSprite("Art/Sprites/Zones/road_suburb");
+            zoneRoad[1] = LoadSprite("Art/Sprites/Zones/road_desert");
+            zoneRoad[2] = LoadSprite("Art/Sprites/Zones/road_tundra");
 
             weatherIcon = new Sprite[4];
-            weatherIcon[0] = LoadSprite("Assets/Art/Sprites/Weather/weather_sunny.png");
-            weatherIcon[1] = LoadSprite("Assets/Art/Sprites/Weather/weather_rain.png");
-            weatherIcon[2] = LoadSprite("Assets/Art/Sprites/Weather/weather_sandstorm.png");
-            weatherIcon[3] = LoadSprite("Assets/Art/Sprites/Weather/weather_blizzard.png");
+            weatherIcon[0] = LoadSprite("Art/Sprites/Weather/weather_sunny");
+            weatherIcon[1] = LoadSprite("Art/Sprites/Weather/weather_rain");
+            weatherIcon[2] = LoadSprite("Art/Sprites/Weather/weather_sandstorm");
+            weatherIcon[3] = LoadSprite("Art/Sprites/Weather/weather_blizzard");
         }
 
         private static Sprite LoadSprite(string path)
         {
-            var s = AssetDatabase.LoadAssetAtPath<Sprite>(path);
-            if (s != null)
-            {
-                if (s.texture != null) s.texture.filterMode = FilterMode.Point;
-                return s;
-            }
-            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-            if (tex != null)
-            {
-                tex.filterMode = FilterMode.Point;
-                return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
-            }
-            return null;
+            var s = Resources.Load<Sprite>(path);
+            if (s != null && s.texture != null)
+                s.texture.filterMode = FilterMode.Point; // 保持像素锐利
+            return s;
         }
-#endif
     }
 }
