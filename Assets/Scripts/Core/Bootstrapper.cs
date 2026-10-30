@@ -156,7 +156,7 @@ namespace DesktopDoomsday.Core
         {
             var f = t.GetField(field, System.Reflection.BindingFlags.NonPublic
                 | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-            if (f != null && f.CanWrite) { f.SetValue(comp, val); return; }
+            if (f != null) { f.SetValue(comp, val); return; }
             var p = t.GetProperty(field, System.Reflection.BindingFlags.NonPublic
                 | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
             if (p != null && p.CanWrite) p.SetValue(comp, val, null);
