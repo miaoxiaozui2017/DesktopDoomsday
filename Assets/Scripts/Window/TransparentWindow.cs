@@ -122,10 +122,11 @@ namespace DesktopDoomsday.Window
                 style = new IntPtr(style.ToInt64() | (long)WS_SYSMENU);
                 SetWindowLong(_hwnd, GWL_STYLE, style);
 
-                // 2) 分层 + 置顶（透明前提）
+                // 2) 分层 + 置顶（透明前提）；同时默认开启点击穿透（桌面宠物模式：全屏透明窗不挡桌面操作）
                 _originalExStyle = GetWindowLong(_hwnd, GWL_EXSTYLE);
-                IntPtr exStyle = new IntPtr(_originalExStyle.ToInt64() | (long)(WS_EX_LAYERED | WS_EX_TOPMOST));
+                IntPtr exStyle = new IntPtr(_originalExStyle.ToInt64() | (long)(WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TRANSPARENT));
                 SetWindowLong(_hwnd, GWL_EXSTYLE, exStyle);
+                _clickThrough = true;
 
                 // 3) 分层窗口全不透明（默认），透明靠 DWM 玻璃扩展 + 相机 alpha
                 SetLayeredWindowAttributes(_hwnd, 0, 255, LWA_ALPHA);

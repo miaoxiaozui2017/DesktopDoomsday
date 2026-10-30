@@ -68,6 +68,9 @@ namespace DesktopDoomsday.Window
 #else
             Debug.Log("[ClickThroughManager] 编辑器模式跳过键盘钩子（仅独立构建生效）。");
 #endif
+            // 同步 tick 频率：窗口默认开启穿透（宠物模式）时降到 5s tick，省 CPU。
+            if (_loop != null && TransparentWindow.Instance != null)
+                _loop.SetBackground(TransparentWindow.Instance.IsClickThrough);
         }
 
         private void InstallHook()

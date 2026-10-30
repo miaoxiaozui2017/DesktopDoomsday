@@ -141,8 +141,25 @@ namespace DesktopDoomsday.Core
                 t = asm.GetType("UnityEngine.U2D.PixelPerfectCamera");
                 if (t != null) break;
             }
-            if (t != null && Camera.main.GetComponent(t) == null)
-                Camera.main.gameObject.AddComponent(t);
+            if (t == null) return;
+            var pp = Camera.main.GetComponent(t);
+            if (pp == null) pp = Camera.main.gameObject.AddComponent(t);
+
+            // 桌面宠物比例：放大参考分辨率，让可视世界更大、车更小（默认 320x180 会把车撑满整屏）。
+            // 用反射写序列化字段，兼容不同 Unity 小版本的属性名差异。
+            SetPpcValue(t, pp, "m_RefResolutionX", 1920);
+            SetPpcValue(t, pp, "m_RefResolutionY", 1080);
+            SetPpcValue(t, pp, "m_AssetsPPU", 100f);
+        }
+
+        private static void SetPpcValue(System.Type t, UnityEngine.Object comp, string field, object val)
+        {
+            var f = t.GetField(field, System.Reflection.BindingFlags.NonPublic
+                | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            if (f != null && f.CanWrite) { f.SetValue(comp, val); return; }
+            var p = t.GetProperty(field, System.Reflection.BindingFlags.NonPublic
+                | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            if (p != null && p.CanWrite) p.SetValue(comp, val, null);
         }
 
         /// <summary>核心循环（SPEC 第 1 节）：天气 → 副本 → 公路/宝箱（可被暂停）→ 小人需求。</summary>

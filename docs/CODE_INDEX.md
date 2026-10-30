@@ -92,13 +92,13 @@ DesktopDoomsday/
 - **AchievementSystem** 🔲：接口已在 `SystemInterfaces.cs` 定义，实现在 Batch 7。
 
 ### Window/ — 桌面窗口层（全部 ✅ Batch 5）
-- `TransparentWindow.cs`：Win32 无边框 + `WS_EX_LAYERED` 分层透明（DWM 扩展玻璃 + 相机已设 `RGBA(0,0,0,0)`）+ `WS_EX_TOPMOST` 置顶；`Start` 延迟一帧执行（SPEC 5.9）；`SetClickThrough(bool)` 切换 `WS_EX_TRANSPARENT`；`OnApplicationQuit`/`Restore()` 恢复原始样式，移除分层/穿透/置顶（架构红线 4）。全部 `#if UNITY_STANDALONE_WIN && !UNITY_EDITOR` 守卫，仅独立构建生效，编辑器 Play 不受影响。
+- `TransparentWindow.cs`：Win32 无边框 + `WS_EX_LAYERED` 分层透明（DWM 扩展玻璃 + 相机已设 `RGBA(0,0,0,0)`）+ `WS_EX_TOPMOST` 置顶；`Start` 延迟一帧执行（SPEC 5.9）；**默认开启 `WS_EX_TRANSPARENT` 点击穿透**（桌面宠物模式，不挡桌面操作）；`SetClickThrough(bool)` 切换穿透；`OnApplicationQuit`/`Restore()` 恢复原始样式，移除分层/穿透/置顶（架构红线 4）。全部 `#if UNITY_STANDALONE_WIN && !UNITY_EDITOR` 守卫，仅独立构建生效，编辑器 Play 不受影响。
 - `ClickThroughManager.cs`：低层键盘钩子（`WH_KEYBOARD_LL`）实现全局热键 **Ctrl+Shift+D** 切换点击穿透（穿透态下仍可捕获）；开启时调 `TransparentWindow.SetClickThrough(true)` 并向 `GameLoop.SetBackground(true)` 把 tick 降到 5s，关闭时反之。
 - `TrayManager.cs`：自建消息专用窗口接收托盘回调，`Shell_NotifyIcon` 托盘图标；最小化时隐藏主窗口并留托盘；右键菜单（显示窗口/隐藏窗口/切换穿透/退出）；`Update` 内手动泵消息。`OnApplicationQuit` 删除图标并销毁窗口。
 
 ### UI/
 - **DebugHud.cs** ✅：开发期调试覆盖层（IMGUI，零预制体）。订阅 `GameEvents` 实时显示里程/速度/区域/天气/小人三需求条形/物资/宝箱计数/FPS/游玩时长，`~` 键开关；并提供调试键 `U`(升级线0) / `P`(+20 零件) / `B`(+5 蓝图)。发布前可隐藏或删除；正式 UI 在 Batch 6 按 SPEC 第 9 节实现。
-- **GameView.cs** ✅（可视冲刺）：可玩视图。`Awake` 从 `Resources/Art/Sprites` 载入精灵（`Resources.Load`，编辑器与 Windows 构建通用，此前仅在 Editor 用 `AssetDatabase` 导致打包后画面空白，已修正）；`BuildScene` 建背景/路带(5 块平铺)/车辆/小人/宝箱/天气图标；`Update` 滚动公路、车辆轮子帧、宝箱弹出；`FitBackground` 铺满相机视野消除黑边，`PlaceWeatherIcon` 锁右上角。小人**常驻待机**（idle 帧），**副本待处理时切换走路帧并左右轻摆**（满足「遇副本测试小人移动能力」），Weakened 变红。
+- **GameView.cs** ✅（可视冲刺 + Batch 5 打磨）：桌面宠物视图。`Awake` 从 `Resources/Art/Sprites` 载入精灵（`Resources.Load`，编辑器与 Windows 构建通用）；`Start` 设相机正交并居中，`DeferLayout` 等两帧（待 PixelPerfect 设定 `orthographicSize`）后按**实际视野动态布局**：仅建**屏幕底部路带（按屏宽动态平铺、无缝滚动）+ 车辆（轮子落路面）+ 小人（站车左侧路面）+ 宝箱 + 右上角天气图标**，**不画整屏不透明背景**（周围全透明，桌面可见）。分辨率变化自动重排。`Update` 滚动公路、车辆轮子帧、宝箱弹出。小人**常驻待机**（idle 帧），**副本待处理时切换走路帧并左右轻摆**（满足「遇副本测试小人移动能力」），Weakened 变红。车辆大小由 `Bootstrapper` 的 PixelPerfect 参考分辨率（1920×1080）控制。
 - **TechHud.cs** ✅（可视冲刺）：科技感 HUD 雏形（IMGUI，暗玻璃+霓虹描边+条形进度），`M` 键开关、默认显示左下；只读 `GameState` 渲染里程/天气/三项需求/物资，不反写。
 - **FastForward.cs** ✅（可视冲刺）：开发期快进。`F` 长按加速 ×20、`G` 跳 60s、`J` 跳 300s，便于快速验收长线数值。
 - **SurvivorInfoPanel.cs / VehicleInfoPanel.cs** ✅（可视冲刺）：`K`/`V` 键独立属性页（小人三维需求+预留项 / 车型+改装线等级与成本+速度加成）。
