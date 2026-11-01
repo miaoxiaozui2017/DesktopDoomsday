@@ -149,17 +149,26 @@ namespace DesktopDoomsday.Core
             // 用反射写序列化字段，兼容不同 Unity 小版本的属性名差异。
             SetPpcValue(t, pp, "m_RefResolutionX", 1920);
             SetPpcValue(t, pp, "m_RefResolutionY", 1080);
-            SetPpcValue(t, pp, "m_AssetsPPU", 100f);
+            SetPpcValue(t, pp, "m_AssetsPPU", 100);
         }
 
         private static void SetPpcValue(System.Type t, UnityEngine.Object comp, string field, object val)
         {
             var f = t.GetField(field, System.Reflection.BindingFlags.NonPublic
                 | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-            if (f != null) { f.SetValue(comp, val); return; }
+            if (f != null) { f.SetValue(comp, ConvertTo(f.FieldType, val)); return; }
             var p = t.GetProperty(field, System.Reflection.BindingFlags.NonPublic
                 | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-            if (p != null && p.CanWrite) p.SetValue(comp, val, null);
+            if (p != null && p.CanWrite) p.SetValue(comp, ConvertTo(p.PropertyType, val), null);
+        }
+
+        /// <summary>按目标类型安全转换赋值值，避免 int/float 等字段类型与传入值类型不匹配导致反射抛异常。</summary>
+        private static object ConvertTo(System.Type target, object val)
+        {
+            if (val == null) return null;
+            if (target.IsInstanceOfType(val)) return val;
+            try { return System.Convert.ChangeType(val, target); }
+            catch { return val; }
         }
 
         /// <summary>核心循环（SPEC 第 1 节）：天气 → 副本 → 公路/宝箱（可被暂停）→ 小人需求。</summary>
