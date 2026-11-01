@@ -89,7 +89,7 @@ DesktopDoomsday/
 - **WeatherSystem** ✅：实现 `IWeatherSystem`。按当前区域权重随机抽取天气、持续随机秒数；仅切换顶部小图标与场景色调（`ApplyWeather` 色调修正），不弹模态窗；`Initialize` 设首个天气，`Tick` 推进 `weatherRemainingSeconds` 归零时重抽。`GetWeatherSpeedFactor / GetWeatherChestChanceMod / GetWeatherConsumptionMod` 供公路/宝箱/小人取修正。
 - **VehicleSystem** ✅：实现 `IVehicleSystem`。`SelectVehicle` 选定车辆（三选一、默认皮卡、不可换）；`GetSpeedBonus` 返改装加成；`GetUpgradeCost(track)` 返回下一级所需零件/蓝图（0→1: 15 件+1 蓝；1→2: 30 件+2 蓝）；`TryUpgrade` 校验并扣除、写 `upgradeLevels`。
 - **DungeonSystem** ✅：实现 `IDungeonSystem`（Batch 4 数据层；面板 UI 留 Batch 6）。`Tick(state, dt)` 推进冷却/超时（按真实 dt），冷却结束后按 `triggerChancePerTick` 概率触发（从当前区域 `dungeonPool` 等权抽取）；`TryTrigger` 为概率触发入口。`Complete(id, branch)` 校验 pending 匹配后结算：奖励 = 同期基础挂机收益 × 分支 `rewardMultiplier`（1.8–3.0）+ 蓝图碎片，确定性随机按掉落权重分配（满足 SPEC 验收项 4「2–3 倍」）；`IgnorePending` 超时/主动忽略，重置冷却，公路照常。`GameState` 新增 `autoIgnoreDungeons` / `pauseRoadDuringDungeon`（SPEC 5.6 设置项，默认 false，Batch 6 接 UI）。另提供调试用 `ForceTrigger`。
-- **AchievementSystem** 🔲：接口已在 `SystemInterfaces.cs` 定义，实现在 Batch 7。
+- **AchievementSystem** ✅（Batch 7）：实现 `IAchievementSystem`。`Init(state)` 订阅 `GameEvents`（里程/宝箱完成/副本完成/区域变化/物资变化）统计 `_chestsOpened`/`_dungeonsCompleted`，并对照 `GameConfig.achievements` 的 `conditionType`（distance/chestsOpened/dungeons/zones/resources）判定；满足且未解锁则写入 `state.unlockedAchievementIds`（随存档持久化）并触发 `OnAchievementUnlocked`。加载旧档时 `Check(false)` 补判已达成项（不弹提示）。空闲态（桌面宠物）不消耗 CPU。
 
 ### Window/ — 桌面窗口层（全部 ✅ Batch 5）
 - `TransparentWindow.cs`：Win32 无边框 + `WS_EX_LAYERED` 分层透明（DWM 扩展玻璃 + 相机已设 `RGBA(0,0,0,0)`）+ `WS_EX_TOPMOST` 置顶；`Start` 延迟一帧执行（SPEC 5.9）；**默认开启 `WS_EX_TRANSPARENT` 点击穿透**（桌面宠物模式，不挡桌面操作）；`SetClickThrough(bool)` 切换穿透；`OnApplicationQuit`/`Restore()` 恢复原始样式，移除分层/穿透/置顶（架构红线 4）。全部 `#if UNITY_STANDALONE_WIN && !UNITY_EDITOR` 守卫，仅独立构建生效，编辑器 Play 不受影响。
@@ -102,7 +102,12 @@ DesktopDoomsday/
 - **TechHud.cs** ✅（可视冲刺）：科技感 HUD 雏形（IMGUI，暗玻璃+霓虹描边+条形进度），`M` 键开关、默认显示左下；只读 `GameState` 渲染里程/天气/三项需求/物资，不反写。
 - **FastForward.cs** ✅（可视冲刺）：开发期快进。`F` 长按加速 ×20、`G` 跳 60s、`J` 跳 300s，便于快速验收长线数值。
 - **SurvivorInfoPanel.cs / VehicleInfoPanel.cs** ✅（可视冲刺）：`K`/`V` 键独立属性页（小人三维需求+预留项 / 车型+改装线等级与成本+速度加成）。
-- **MainHud / DungeonPrompt / DungeonPanel / OfflineReport** 🔲：Batch 6 正式 UI（uGUI + Canvas Scaler，分辨率自适应），订阅事件不轮询。
+- **UIHelper.cs** ✅（Batch 6 基础设施）：uGUI 运行时构建助手（零预制体）。`GetCanvas` 创建 ScreenSpaceOverlay 画布 + 自动 `EventSystem`；`Panel/Label/Button/NeonBar` 构建器统一 SPEC 9.3/9.4 暗玻璃 + 霓虹青描边视觉；`EnterInteractive/ExitInteractive` 交互态计数——任何需点击的面板显示时关穿透（桌面宠物变可交互），隐藏后恢复穿透。
+- **MainHud.cs** ✅（Batch 6）：正式科技感 HUD（替代 IMGUI 调试层外观）。左下暗玻璃面板显示里程/区域/天气/小人三需求霓虹条/物资/蓝图/成就计数，订阅事件 + 0.5s 节流刷新，只读不反写。
+- **DungeonUI.cs** ✅（Batch 6）：副本交互。订阅 `OnDungeonAvailable` 弹底部非模态提示，点击打开分支面板（`GameConfig` 分支列表），选择 → `DungeonSystem.Complete` 结算，或忽略；交互期间关穿透；副本超时自动关闭（轮询 pending 清空）。不暂停公路（PauseRoadDuringDungeon 默认 false）。
+- **OfflineReportUI.cs** ✅（Batch 6）：启动读取 `OfflineSimulator.Pending`，离线 ≥60s 弹「离线收益结算」面板（时长/里程/小人状态/物资变化），关闭恢复穿透。
+- **AchievementToast.cs** ✅（Batch 7）：成就解锁顶部居中吐司（中文名映射），3.5s 自动消失，非交互（不切穿透，保持宠物态）。
+- **OfflineSimulator.cs** ✅（Batch 6，Core）：`Simulate(state, seconds)` 以 5s 步长、小人 0.5× 消耗速率模拟离线 tick，不生成宝箱/副本，返回 `OfflineReport`（距离增量 + 物资变化 + 小人状态）；`Bootstrapper` 加载后调用并暂存 `Pending`。
 
 ### Data/
 - **Enums.cs** ✅：枚举 `VehicleId(Pickup/Van/Motorcycle)`、`WeatherId(Sunny/Rainstorm/Sandstorm/ExtremeCold)`、`DungeonId(WarehouseRaid/ConvoyChase)`、`ChestType(Mileage/Random/Dungeon)`、`SurvivorState(Normal/Weakened)`、`ZoneId(Suburb/Desert/Tundra)`。
@@ -120,6 +125,6 @@ DesktopDoomsday/
 | 3 | 天气 / 车辆 / 区域修正 | ✅ 已实现（随 feature/visual 合并 main） |
 | 4 | 副本系统（数据层：触发/超时忽略/分支结算） | ✅ 已实现（当前分支 feature/batch4） |
 | 5 | 桌面窗口层 | ✅ 已实现（透明/置顶/穿透热键 + 托盘；仅 Windows 独立构建生效） |
-| 6 | 正式 UI / 离线报告 | 🔲 待开发 |
-| 7 | 成就 / 性能打磨 | 🔲 待开发 |
+| 6 | 正式 UI（MainHud/DungeonUI/OfflineReportUI）/ 离线报告 | ✅ 已实现（uGUI + CanvasScaler，科技感规范 9.4） |
+| 7 | 成就（10）/ 性能打磨 | ✅ 已实现（AchievementSystem + 吐司；轻量节流刷新，CPU 友好） |
 > 注：曾评估「账号插槽 / 新游戏菜单」多存档方案（feature/visual 内），已按用户决定**回退为单份全局 `save.json`**，保持简单。清档仍靠删除 `save.json`。

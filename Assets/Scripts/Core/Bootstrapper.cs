@@ -23,6 +23,7 @@ namespace DesktopDoomsday.Core
         private WeatherSystem _weather;
         private VehicleSystem _vehicle;
         private DungeonSystem _dungeon;
+        private AchievementSystem _achievements;
 
         private void Awake()
         {
@@ -36,21 +37,28 @@ namespace DesktopDoomsday.Core
             _weather = new WeatherSystem();
             _vehicle = new VehicleSystem();
             _dungeon = new DungeonSystem();
+            _achievements = new AchievementSystem();
             ServiceLocator.Register(_road);
             ServiceLocator.Register(_chest);
             ServiceLocator.Register(_survivor);
             ServiceLocator.Register(_weather);
             ServiceLocator.Register(_vehicle);
             ServiceLocator.Register(_dungeon);
+            ServiceLocator.Register(_achievements);
 
             var data = _save.Load();
             bool isNew = (data == null || data.state == null);
             if (!isNew)
             {
                 _state = data.state;
+                // 离线结算（SPEC 5.8）：按 0.5 消耗速率模拟，上限 8h，不生成宝箱/副本。
                 float offline = _save.ComputeOfflineSeconds(_state.lastSaveUnixMs);
                 if (offline > 0f)
-                    Debug.Log($"[Bootstrapper] Offline seconds pending: {offline}");
+                {
+                    OfflineSimulator.Pending = OfflineSimulator.Simulate(_state, offline);
+                    _save.Save(_state); // 更新 lastSaveUnixMs，避免重复结算
+                    Debug.Log($"[Bootstrapper] 离线 {offline:F0}s，推进 {OfflineSimulator.Pending.distanceGain:F2}km");
+                }
             }
             else
             {
@@ -58,6 +66,9 @@ namespace DesktopDoomsday.Core
                 InitNewGame(_state);
             }
             ServiceLocator.Register(_state);
+
+            // 成就系统订阅事件并按当前状态补判（离线里程/区域已计入）
+            _achievements.Init(_state);
 
             var loop = FindObjectOfType<GameLoop>();
             if (loop != null)
@@ -119,6 +130,10 @@ namespace DesktopDoomsday.Core
             if (FindObjectOfType<FastForward>() == null) gameObject.AddComponent<FastForward>();
             if (FindObjectOfType<SurvivorInfoPanel>() == null) gameObject.AddComponent<SurvivorInfoPanel>();
             if (FindObjectOfType<VehicleInfoPanel>() == null) gameObject.AddComponent<VehicleInfoPanel>();
+            if (FindObjectOfType<MainHud>() == null) gameObject.AddComponent<MainHud>();
+            if (FindObjectOfType<DungeonUI>() == null) gameObject.AddComponent<DungeonUI>();
+            if (FindObjectOfType<OfflineReportUI>() == null) gameObject.AddComponent<OfflineReportUI>();
+            if (FindObjectOfType<AchievementToast>() == null) gameObject.AddComponent<AchievementToast>();
             EnsureWindowLayer();
             EnsurePixelPerfect();
         }
