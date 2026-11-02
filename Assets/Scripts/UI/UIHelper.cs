@@ -53,23 +53,29 @@ namespace DesktopDoomsday.UI
 
         private static Font _cjk;
         /// <summary>
-        /// 中文 CJK 字体（运行时从 Windows 系统字体加载）。无则回退到 Unity 默认字体（中文会显示为缺字框）。
-        /// 仅 Windows 构建/编辑器生效（路径为 Windows 专属）。
+        /// 中文 CJK 字体。加载优先级：
+        /// 1) 工程内置资源 <see cref="Resources"/>/Fonts/msyh（打包内嵌，跨平台生效，最稳）；
+        /// 2) 反射调用老 API Font.CreateDynamicFontFromOSFile（仅旧 Unity 版本存在，2022.3 已移除，会走到 null 分支）；
+        /// 3) 都为 null 时回退 Unity 默认字体（中文会显示为缺字框，但不影响编译与运行）。
         /// </summary>
         public static Font CjkFont
         {
             get
             {
-                if (_cjk == null)
+                if (_cjk != null) return _cjk;
+                // 1) 内置资源优先
+                _cjk = Resources.Load<Font>("Fonts/msyh");
+                if (_cjk != null) return _cjk;
+                // 2) 反射兜底老 API（编译期不依赖该符号，避免 CS0117）
+                var m = typeof(Font).GetMethod("CreateDynamicFontFromOSFile", new[] { typeof(string) });
+                if (m != null)
                 {
-#if UNITY_STANDALONE_WIN
                     string p = "C:/Windows/Fonts/msyh.ttc";
                     if (File.Exists(p))
                     {
-                        try { _cjk = Font.CreateDynamicFontFromOSFile(p); }
+                        try { _cjk = m.Invoke(null, new object[] { p }) as Font; }
                         catch (System.Exception) { _cjk = null; }
                     }
-#endif
                 }
                 return _cjk;
             }
