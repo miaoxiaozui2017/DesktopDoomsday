@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using DesktopDoomsday.Core;
+using DesktopDoomsday.Data;
 
 namespace DesktopDoomsday.UI
 {

@@ -39,7 +39,7 @@ namespace DesktopDoomsday.UI
             _head  = UIHelper.NewLabelStyle((int)(14 * k), UIHelper.C_Amber, TextAnchor.MiddleLeft, true);
             _label = UIHelper.NewLabelStyle((int)(13 * k), UIHelper.C_Text, TextAnchor.MiddleLeft);
             _small = UIHelper.NewLabelStyle((int)(12 * k), UIHelper.C_Text, TextAnchor.MiddleLeft);
-            _lock  = UIHelper.NewLabelStyle((int)(12 * k), UIHelper.C_Dim, TextAnchor.MiddleLeft);
+            _lock  = UIHelper.NewLabelStyle((int)(12 * k), UIHelper.C_Muted, TextAnchor.MiddleLeft);
             _btn   = UIHelper.NewButtonStyle((int)(13 * k), UIHelper.C_Cyan);
             _inited = true;
         }

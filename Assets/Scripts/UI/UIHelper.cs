@@ -19,6 +19,7 @@ namespace DesktopDoomsday.UI
         public static readonly Color C_Green = new Color(0.30f, 0.90f, 0.45f);
         public static readonly Color C_Red   = new Color(0.95f, 0.32f, 0.32f);
         public static readonly Color C_Dim   = new Color(0.16f, 0.20f, 0.26f, 0.95f);
+        public static readonly Color C_Muted = new Color(0.46f, 0.54f, 0.62f); // 次要文字（提示/未解锁），保证暗底可读
 
         private static Texture2D _white;
         public static Texture2D WhiteTex

@@ -35,6 +35,8 @@ namespace DesktopDoomsday.Window
         private const uint SWP_NOSIZE = 0x0001;
         private const uint SWP_NOACTIVATE = 0x0010;
         private const uint SWP_FRAMECHANGED = 0x0020;
+        private const int HWND_TOP = 0;
+        private const int HWND_BOTTOM = 1;
         private const int HWND_TOPMOST = -1;
         private const int HWND_NOTOPMOST = -2;
         private const int SW_RESTORE = 9;
@@ -233,9 +235,6 @@ namespace DesktopDoomsday.Window
 
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
         /// <summary>激活窗口（置前台并恢复，若被最小化），使键盘快捷键（I/A/H/T）能收到输入；配合 BringToFront 使用。</summary>
         public void Activate()
