@@ -42,7 +42,7 @@ DesktopDoomsday/
 │   │   │   ├── FastForward.cs            ✅ 可视冲刺 开发期快进（F 长按 ×20 / G +60s / J +300s）
 │   │   │   ├── SurvivorInfoPanel.cs      ✅ 可视冲刺 小人属性页（K 键）
 │   │   │   ├── VehicleInfoPanel.cs       ✅ 可视冲刺 车辆属性页（V 键）
-│   │   │   ├── MainHud.cs                🔲 Batch6  正式 HUD（科技感 uGUI）
+│   │   │   ├── MainHud.cs                ✅ Batch6  正式 HUD（科技感 IMGUI）
 │   │   │   ├── DungeonPrompt.cs          🔲 Batch6  非模态副本提示
 │   │   │   ├── DungeonPanel.cs           🔲 Batch6  副本分支面板
 │   │   │   └── OfflineReport.cs          🔲 Batch6  离线收益报告
@@ -102,11 +102,11 @@ DesktopDoomsday/
 - **TechHud.cs** ✅（可视冲刺）：科技感 HUD 雏形（IMGUI，暗玻璃+霓虹描边+条形进度），`M` 键开关、默认显示左下；只读 `GameState` 渲染里程/天气/三项需求/物资，不反写。
 - **FastForward.cs** ✅（可视冲刺）：开发期快进。`F` 长按加速 ×20、`G` 跳 60s、`J` 跳 300s，便于快速验收长线数值。
 - **SurvivorInfoPanel.cs / VehicleInfoPanel.cs** ✅（可视冲刺）：`K`/`V` 键独立属性页（小人三维需求+预留项 / 车型+改装线等级与成本+速度加成）。
-- **UIHelper.cs** ✅（Batch 6 基础设施）：uGUI 运行时构建助手（零预制体）。`GetCanvas` 创建 ScreenSpaceOverlay 画布 + 自动 `EventSystem`；`Panel/Label/Button/NeonBar` 构建器统一 SPEC 9.3/9.4 暗玻璃 + 霓虹青描边视觉；`EnterInteractive/ExitInteractive` 交互态计数——任何需点击的面板显示时关穿透（桌面宠物变可交互），隐藏后恢复穿透。
-- **MainHud.cs** ✅（Batch 6）：正式科技感 HUD（替代 IMGUI 调试层外观）。左下暗玻璃面板显示里程/区域/天气/小人三需求霓虹条/物资/蓝图/成就计数，订阅事件 + 0.5s 节流刷新，只读不反写。
-- **DungeonUI.cs** ✅（Batch 6）：副本交互。订阅 `OnDungeonAvailable` 弹底部非模态提示，点击打开分支面板（`GameConfig` 分支列表），选择 → `DungeonSystem.Complete` 结算，或忽略；交互期间关穿透；副本超时自动关闭（轮询 pending 清空）。不暂停公路（PauseRoadDuringDungeon 默认 false）。
+- **UIHelper.cs** ✅（Batch 6 基础设施）：IMGUI（`OnGUI`）运行时工具集（**不依赖 `UnityEngine.UI` 程序集**——部分工程 uGUI 模块未接入会导致 CS0234，故正式 UI 走 IMGUI）。提供：纯色纹理 `DrawRect`/`DrawBorder`、文本与按钮样式构造（统一 SPEC 9.3/9.4 暗玻璃 + 霓虹青描边视觉）、运行时从 `C:/Windows/Fonts/msyh.ttc` 加载中文 CJK 字体（避免缺字框）、`SetInteractive(bool)` 切换点击穿透（需点击的面板显示时关穿透，隐藏后恢复）。
+- **MainHud.cs** ✅（Batch 6）：正式科技感 HUD（IMGUI，替代调试层外观）。左下暗玻璃面板显示里程/区域/天气/小人三需求霓虹条/物资/蓝图/成就计数，每帧 `OnGUI` 直接读 `GameState`（轻量、只读不反写）。
+- **DungeonUI.cs** ✅（Batch 6）：副本交互（IMGUI）。轮询 `pendingDungeon` 弹底部非模态提示 + 倒计时，点击「查看」打开分支面板（`GameConfig` 分支列表），选择 → `DungeonSystem.Complete` 结算，或忽略；出现时关穿透、清除后恢复；副本超时自动关闭。不暂停公路（PauseRoadDuringDungeon 默认 false）。
 - **OfflineReportUI.cs** ✅（Batch 6）：启动读取 `OfflineSimulator.Pending`，离线 ≥60s 弹「离线收益结算」面板（时长/里程/小人状态/物资变化），关闭恢复穿透。
-- **AchievementToast.cs** ✅（Batch 7）：成就解锁顶部居中吐司（中文名映射），3.5s 自动消失，非交互（不切穿透，保持宠物态）。
+- **AchievementToast.cs** ✅（Batch 7）：成就解锁顶部居中吐司（内置中文名映射，无需改数据类），3.5s 自动消失，非交互（不切穿透，保持宠物态）。
 - **OfflineSimulator.cs** ✅（Batch 6，Core）：`Simulate(state, seconds)` 以 5s 步长、小人 0.5× 消耗速率模拟离线 tick，不生成宝箱/副本，返回 `OfflineReport`（距离增量 + 物资变化 + 小人状态）；`Bootstrapper` 加载后调用并暂存 `Pending`。
 
 ### Data/
@@ -125,6 +125,6 @@ DesktopDoomsday/
 | 3 | 天气 / 车辆 / 区域修正 | ✅ 已实现（随 feature/visual 合并 main） |
 | 4 | 副本系统（数据层：触发/超时忽略/分支结算） | ✅ 已实现（当前分支 feature/batch4） |
 | 5 | 桌面窗口层 | ✅ 已实现（透明/置顶/穿透热键 + 托盘；仅 Windows 独立构建生效） |
-| 6 | 正式 UI（MainHud/DungeonUI/OfflineReportUI）/ 离线报告 | ✅ 已实现（uGUI + CanvasScaler，科技感规范 9.4） |
+| 6 | 正式 UI（MainHud/DungeonUI/OfflineReportUI）/ 离线报告 | ✅ 已实现（IMGUI / OnGUI，零预制体，规避 uGUI 模块依赖） |
 | 7 | 成就（10）/ 性能打磨 | ✅ 已实现（AchievementSystem + 吐司；轻量节流刷新，CPU 友好） |
 > 注：曾评估「账号插槽 / 新游戏菜单」多存档方案（feature/visual 内），已按用户决定**回退为单份全局 `save.json`**，保持简单。清档仍靠删除 `save.json`。

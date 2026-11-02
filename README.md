@@ -138,7 +138,7 @@ Windows 独立构建（桌面宠物终态）：
 3. `Assets/Resources/` 右键 `Create → DesktopDoomsday → GameConfig` 填表（也可先不填，系统有兜底常量；或菜单 `DesktopDoomsday → 创建默认 GameConfig` 一键生成基线）。
 4. **最大化 Game 视图标签页**（或勾 `Maximize On Play`）后按 **Play**：公路自动推进，精灵与 HUD 即时可见。
 
-### 开发期按键（IMGUI 调试层，正式版由 Batch 6 uGUI 取代）
+### 开发期按键（IMGUI 调试层；Batch 6 正式玩法 UI 同样基于 IMGUI，仅外观更精致）
 | 键 | 作用 |
 |---|---|
 | `M` | 开关科技 HUD（左下，默认开） |
@@ -153,7 +153,7 @@ Windows 独立构建（桌面宠物终态）：
 
 > 提示：Game 视图若设在固定高分辨率（如 1920×1080）但编辑器窗格较小，会被整体缩放，IMGUI 面板缩到角落不易找——最大化窗格或用 **Free Aspect** 即可。`Rendering at an odd-numbered resolution` 是 Pixel Perfect Camera 的开发期警告（渲染高度奇数），不影响打包，可忽略。
 
-> 正式美术与玩法 UI（科技感 HUD、副本面板、离线报告）将在 Batch 6 以 uGUI + Canvas Scaler 落地，开发期请用上述 IMGUI 层观测。
+> 正式美术与玩法 UI（科技感 HUD、副本面板、离线报告）已在 Batch 6 以 **IMGUI（`OnGUI`，零预制体）** 落地——不依赖 `UnityEngine.UI` 程序集，规避部分工程该模块未接入导致的 CS0234 编译错误；开发观测仍可用上述 IMGUI 调试层。
 
 ---
 
@@ -165,10 +165,10 @@ Windows 独立构建（桌面宠物终态）：
 - ✅ **可视冲刺**（提前实现 Batch 6 画面）：程序化像素美术（28 张精灵）+ 可玩视图 + 科技 HUD + 快进 + 小人/车辆属性页（随 feature/visual 合并 `main`）。
 - ✅ **Batch 4**：副本系统**数据层**（触发 / 超时忽略 / 分支结算），含调试键 `D`/`C` 与副本期间小人走路动画；副本面板 UI 留 Batch 6。
 - ✅ **Batch 5**：桌面窗口层（透明/置顶/穿透热键 `Ctrl+Shift+D` + 托盘菜单 + 退出还原，仅 Windows 构建生效）。
-- ✅ **Batch 6**：正式 uGUI UI / 离线报告。`UIHelper` 运行时构建画布 + 科技感面板（SPEC 9.4）；`MainHud`（里程/区域/天气/小人三需求霓虹条/物资/蓝图/成就）、`DungeonUI`（底部提示→分支面板，可参与副本）、`OfflineReportUI`（离线收益结算弹窗）；Bootstrapper 加载后跑离线结算。
+- ✅ **Batch 6**：正式 IMGUI UI / 离线报告。`UIHelper` 提供 IMGUI 工具集（纯色纹理/样式/中文系统字体/点击穿透切换）+ 科技感面板（SPEC 9.4）；`MainHud`（里程/区域/天气/小人三需求霓虹条/物资/蓝图/成就）、`DungeonUI`（底部提示→分支面板，可参与副本）、`OfflineReportUI`（离线收益结算弹窗）；Bootstrapper 加载后跑离线结算。
 - ✅ **Batch 7**：成就系统（10 个，对照 `GameConfig.achievements` 自动解锁 + 顶部吐司）+ 轻量节流刷新性能打磨。
 
-> **MVP v1.0 功能已闭环**：公路自动推进 → 宝箱/物资 → 小人生存 → 天气/区域 → 副本可参与 → 离线收益 → 10 成就。开发期 IMGUI 调试层（TechHud/DebugHud/属性页/快进）保留可用于调参，正式玩法走 uGUI。
+> **MVP v1.0 功能已闭环**：公路自动推进 → 宝箱/物资 → 小人生存 → 天气/区域 → 副本可参与 → 离线收益 → 10 成就。开发期 IMGUI 调试层（TechHud/DebugHud/属性页/快进）保留可用于调参，正式玩法同样走 IMGUI（更精致的科技感外观）。
 
 详细代码地图见 [`docs/CODE_INDEX.md`](docs/CODE_INDEX.md)，实现契约见 [`docs/SPEC.md`](docs/SPEC.md)。
 

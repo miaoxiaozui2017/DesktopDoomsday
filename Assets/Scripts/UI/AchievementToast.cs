@@ -1,14 +1,58 @@
+using UnityEngine;
 using System.Collections.Generic;
 using DesktopDoomsday.Core;
 
 namespace DesktopDoomsday.UI
 {
     /// <summary>
-    /// 成就解锁提示（Batch 7）。顶部居中轻量吐司，3.5s 后自动消失。非交互（不切穿透，保持桌面宠物态）。
+    /// 成就解锁提示（Batch 7，IMGUI 版）。顶部居中轻量吐司，3.5s 后自动消失。
+    /// 非交互（不切穿透，保持桌面宠物态）。成就中文名由内置映射表提供，无需改数据类。
     /// </summary>
     public class AchievementToast : MonoBehaviour
     {
-        private readonly List<GameObject> _active = new List<GameObject>();
+        private GUIStyle _title, _label;
+        private bool _inited;
+        private readonly Queue<string> _queue = new Queue<string>();
+        private float _showUntil;
+        private string _current;
+
+        private void EnsureStyles()
+        {
+            if (_inited) return;
+            _title = UIHelper.NewLabelStyle(14, UIHelper.C_Amber, TextAnchor.MiddleCenter, true);
+            _label = UIHelper.NewLabelStyle(13, UIHelper.C_Cyan, TextAnchor.MiddleCenter);
+            _inited = true;
+        }
+
+        private void OnEnable() => GameEvents.OnAchievementUnlocked += OnUnlock;
+        private void OnDisable() => GameEvents.OnAchievementUnlocked -= OnUnlock;
+
+        private void OnUnlock(string id)
+        {
+            Names.TryGetValue(id, out var label);
+            if (string.IsNullOrEmpty(label)) label = id;
+            _queue.Enqueue(label);
+        }
+
+        private void OnGUI()
+        {
+            EnsureStyles();
+            if (string.IsNullOrEmpty(_current) && _queue.Count > 0 && Time.time >= _showUntil)
+            {
+                _current = _queue.Dequeue();
+                _showUntil = Time.time + 3.5f;
+            }
+            if (string.IsNullOrEmpty(_current)) return;
+            if (Time.time >= _showUntil) { _current = null; return; }
+
+            float w = 300f, h = 52f;
+            float x = (Screen.width - w) / 2f;
+            float y = 24f; // 顶部居中
+            UIHelper.DrawRect(new Rect(x, y, w, h), UIHelper.C_Panel);
+            UIHelper.DrawBorder(x, y, w, h, UIHelper.C_Amber);
+            GUI.Label(new Rect(x, y + 6f, w, 20f), "★ 成就解锁", _title);
+            GUI.Label(new Rect(x, y + 28f, w, 20f), _current, _label);
+        }
 
         private static readonly Dictionary<string, string> Names = new Dictionary<string, string>
         {
@@ -23,34 +67,5 @@ namespace DesktopDoomsday.UI
             { "zone_2", "穿越荒漠" },
             { "zone_3", "极寒来客" },
         };
-
-        private void OnEnable() => GameEvents.OnAchievementUnlocked += Show;
-        private void OnDisable()
-        {
-            GameEvents.OnAchievementUnlocked -= Show;
-            foreach (var g in _active) if (g != null) Destroy(g);
-            _active.Clear();
-        }
-
-        private void Show(string id)
-        {
-            Names.TryGetValue(id, out var label);
-            if (string.IsNullOrEmpty(label)) label = id;
-
-            float w = 280f, h = 40f;
-            float x = (Screen.width - w) / 2f;
-            float y = 24f + _active.Count * (h + 8f);
-            var go = UIHelper.Panel("AchToast", x, y, w, h, UIHelper.Palette.Panel, UIHelper.Palette.Cyan);
-            UIHelper.Label(go, "★ " + label, 10f, 0f, w - 20f, h, 13, UIHelper.Palette.Cyan, TextAnchor.MiddleLeft);
-            _active.Add(go);
-            int idx = _active.Count - 1;
-            Destroy(go, 3.5f);
-            Invoke(nameof(Cleanup), 3.6f);
-        }
-
-        private void Cleanup()
-        {
-            _active.RemoveAll(g => g == null);
-        }
     }
 }
