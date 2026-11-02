@@ -51,6 +51,15 @@ namespace DesktopDoomsday.UI
             DrawRect(new Rect(x + w - t, y, t, h), c);
         }
 
+        /// <summary>UI 全局缩放：以约 800px 屏高为基准，随分辨率等比放大/缩小，避免小屏 UI 过小。</summary>
+        public static float Scale => Mathf.Clamp((float)Screen.height / 800f, 0.75f, 2.2f);
+        public static float S(float v) => v * Scale;
+        public static Rect R(float x, float y, float w, float h)
+        {
+            float k = Scale;
+            return new Rect(x * k, y * k, w * k, h * k);
+        }
+
         private static Font _cjk;
         /// <summary>
         /// 中文 CJK 字体。加载优先级：
@@ -102,12 +111,32 @@ namespace DesktopDoomsday.UI
             return s;
         }
 
-        /// <summary>交互态切换点击穿透：interactive=true 关闭穿透（可点 UI）；false 恢复桌面宠物穿透态。</summary>
+        /// <summary>
+        /// 交互态切换点击穿透（引用计数，支持多个面板同时开/关互不干扰）。
+        /// interactive=true：计数 +1，关闭穿透（可点 UI）；
+        /// interactive=false：计数 -1，归零时恢复桌面宠物穿透态并把窗口发往底层（仅桌面背景之上）。
+        /// </summary>
+        private static int _interactiveCount;
         public static void SetInteractive(bool interactive)
         {
 #if UNITY_STANDALONE_WIN
             var tw = TransparentWindow.Instance;
-            if (tw != null) tw.SetClickThrough(!interactive);
+            if (tw == null) return;
+            if (interactive)
+            {
+                _interactiveCount++;
+                tw.SetClickThrough(false);
+                tw.BringToFront();
+            }
+            else
+            {
+                _interactiveCount = Mathf.Max(0, _interactiveCount - 1);
+                if (_interactiveCount == 0)
+                {
+                    tw.SetClickThrough(true);
+                    tw.SendToBottom();
+                }
+            }
 #endif
         }
     }

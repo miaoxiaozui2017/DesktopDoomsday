@@ -154,16 +154,16 @@ namespace DesktopDoomsday.EditorTools
 
             cfg.achievements = new List<AchievementConfig>
             {
-                new AchievementConfig { id = "dist_10", conditionType = "distance", parameter = 10f },
-                new AchievementConfig { id = "dist_100", conditionType = "distance", parameter = 100f },
-                new AchievementConfig { id = "dist_1000", conditionType = "distance", parameter = 1000f },
-                new AchievementConfig { id = "chest_1", conditionType = "chestsOpened", parameter = 1f },
-                new AchievementConfig { id = "chest_50", conditionType = "chestsOpened", parameter = 50f },
-                new AchievementConfig { id = "chest_200", conditionType = "chestsOpened", parameter = 200f },
-                new AchievementConfig { id = "dungeon_1", conditionType = "dungeons", parameter = 1f },
-                new AchievementConfig { id = "dungeon_10", conditionType = "dungeons", parameter = 10f },
-                new AchievementConfig { id = "zone_2", conditionType = "zones", parameter = 2f },
-                new AchievementConfig { id = "zone_3", conditionType = "zones", parameter = 3f },
+                new AchievementConfig { id = "dist_10",   displayName = "初出城郊",   description = "累计行驶 10 km",       conditionType = "distance", parameter = 10f },
+                new AchievementConfig { id = "dist_100",  displayName = "长途跋涉",   description = "累计行驶 100 km",      conditionType = "distance", parameter = 100f },
+                new AchievementConfig { id = "dist_1000", displayName = "末日旅人",   description = "累计行驶 1000 km",     conditionType = "distance", parameter = 1000f },
+                new AchievementConfig { id = "chest_1",   displayName = "第一桶金",   description = "打开 1 个宝箱",        conditionType = "chestsOpened", parameter = 1f },
+                new AchievementConfig { id = "chest_50",  displayName = "拾荒能手",   description = "打开 50 个宝箱",       conditionType = "chestsOpened", parameter = 50f },
+                new AchievementConfig { id = "chest_200", displayName = "仓库管理员", description = "打开 200 个宝箱",      conditionType = "chestsOpened", parameter = 200f },
+                new AchievementConfig { id = "dungeon_1", displayName = "初探副本",   description = "完成 1 次副本",        conditionType = "dungeons", parameter = 1f },
+                new AchievementConfig { id = "dungeon_10",displayName = "副本老手",   description = "完成 10 次副本",       conditionType = "dungeons", parameter = 10f },
+                new AchievementConfig { id = "zone_2",    displayName = "跨越荒漠",   description = "抵达第 2 个区域",      conditionType = "zones", parameter = 2f },
+                new AchievementConfig { id = "zone_3",    displayName = "极地远征",   description = "抵达第 3 个区域",      conditionType = "zones", parameter = 3f },
             };
 
             AssetDatabase.CreateAsset(cfg, Path);

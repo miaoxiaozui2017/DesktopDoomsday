@@ -29,9 +29,21 @@ namespace DesktopDoomsday.UI
 
         private void OnUnlock(string id)
         {
-            Names.TryGetValue(id, out var label);
+            string label = ResolveName(id);
             if (string.IsNullOrEmpty(label)) label = id;
             _queue.Enqueue(label);
+        }
+
+        private static string ResolveName(string id)
+        {
+            var cfg = GameConfig.Instance;
+            if (cfg != null && cfg.achievements != null)
+            {
+                var a = cfg.achievements.Find(x => x.id == id);
+                if (a != null && !string.IsNullOrEmpty(a.displayName)) return a.displayName;
+            }
+            Names.TryGetValue(id, out var fallback);
+            return fallback;
         }
 
         private void OnGUI()

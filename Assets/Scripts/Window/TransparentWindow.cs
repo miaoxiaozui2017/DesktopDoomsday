@@ -37,6 +37,7 @@ namespace DesktopDoomsday.Window
         private const uint SWP_FRAMECHANGED = 0x0020;
         private const int HWND_TOPMOST = -1;
         private const int HWND_NOTOPMOST = -2;
+        private const int SW_RESTORE = 9;
 
         [StructLayout(LayoutKind.Sequential)]
         private struct MARGINS
@@ -75,8 +76,10 @@ namespace DesktopDoomsday.Window
         private IntPtr _hwnd;
         private IntPtr _originalExStyle;
         private bool _clickThrough;
+        private bool _topmost;
 
         public bool IsClickThrough => _clickThrough;
+        public bool IsTopmost => _topmost;
 
         private void Awake()
         {
@@ -122,9 +125,12 @@ namespace DesktopDoomsday.Window
                 style = new IntPtr(style.ToInt64() | (long)WS_SYSMENU);
                 SetWindowLong(_hwnd, GWL_STYLE, style);
 
-                // 2) 分层 + 置顶（透明前提）；同时默认开启点击穿透（桌面宠物模式：全屏透明窗不挡桌面操作）
+                // 2) 分层（透明前提）；同时默认开启点击穿透（桌面宠物模式：全屏透明窗不挡桌面操作）。
+                //    是否「始终置顶」由 GameConfig.windowTopmost 决定（默认 false = 仅置于桌面背景之上，不遮挡其它应用）。
                 _originalExStyle = GetWindowLong(_hwnd, GWL_EXSTYLE);
-                IntPtr exStyle = new IntPtr(_originalExStyle.ToInt64() | (long)(WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TRANSPARENT));
+                _topmost = (GameConfig.Instance != null) ? GameConfig.Instance.windowTopmost : false;
+                IntPtr exStyle = new IntPtr(_originalExStyle.ToInt64() | (long)(WS_EX_LAYERED | WS_EX_TRANSPARENT));
+                if (_topmost) exStyle = new IntPtr(exStyle.ToInt64() | (long)WS_EX_TOPMOST);
                 SetWindowLong(_hwnd, GWL_EXSTYLE, exStyle);
                 _clickThrough = true;
 
@@ -135,11 +141,11 @@ namespace DesktopDoomsday.Window
                 var margins = new MARGINS { cxLeftWidth = -1, cxRightWidth = -1, cyTopHeight = -1, cyBottomHeight = -1 };
                 DwmExtendFrameIntoClientArea(_hwnd, ref margins);
 
-                // 5) 应用样式变更并置顶
-                SetWindowPos(_hwnd, new IntPtr(HWND_TOPMOST), 0, 0, 0, 0,
+                // 5) 应用样式变更。置顶模式 → HWND_TOPMOST；否则 → HWND_BOTTOM（仅位于桌面背景之上，正常应用覆盖它）
+                SetWindowPos(_hwnd, new IntPtr(_topmost ? HWND_TOPMOST : HWND_BOTTOM), 0, 0, 0, 0,
                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 
-                Debug.Log("[TransparentWindow] 透明/置顶窗口已应用。");
+                Debug.Log($"[TransparentWindow] 透明窗口已应用（置顶={_topmost}，穿透={_clickThrough}）。");
             }
             catch (Exception e)
             {
@@ -164,6 +170,86 @@ namespace DesktopDoomsday.Window
             catch (Exception e)
             {
                 Debug.LogError($"[TransparentWindow] 设置点击穿透失败：{e}");
+            }
+#endif
+        }
+
+        /// <summary>运行时切换置顶：on=true 始终置顶；false 回到「仅置于桌面背景之上」（发往 HWND_BOTTOM）。</summary>
+        public void SetTopmost(bool on)
+        {
+            _topmost = on;
+#if !UNITY_EDITOR
+            if (_hwnd == IntPtr.Zero) return;
+            try
+            {
+                IntPtr ex = GetWindowLong(_hwnd, GWL_EXSTYLE);
+                long v = ex.ToInt64();
+                if (on) v |= (long)WS_EX_TOPMOST;
+                else v &= ~(long)WS_EX_TOPMOST;
+                SetWindowLong(_hwnd, GWL_EXSTYLE, new IntPtr(v));
+                SetWindowPos(_hwnd, new IntPtr(on ? HWND_TOPMOST : HWND_BOTTOM), 0, 0, 0, 0,
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[TransparentWindow] 设置置顶失败：{e}");
+            }
+#endif
+        }
+
+        /// <summary>把窗口发往底层（仅位于桌面背景之上，被正常应用窗口覆盖）。仅非置顶模式下有效。</summary>
+        public void SendToBottom()
+        {
+#if !UNITY_EDITOR
+            if (_hwnd == IntPtr.Zero || _topmost) return;
+            try
+            {
+                SetWindowPos(_hwnd, new IntPtr(HWND_BOTTOM), 0, 0, 0, 0,
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[TransparentWindow] 发送到底层失败：{e}");
+            }
+#endif
+        }
+
+        /// <summary>交互时把窗口提到前台（HWND_TOP，不置顶），便于点击面板按钮；关闭交互后由 SendToBottom 复位。</summary>
+        public void BringToFront()
+        {
+#if !UNITY_EDITOR
+            if (_hwnd == IntPtr.Zero) return;
+            try
+            {
+                SetWindowPos(_hwnd, new IntPtr(HWND_TOP), 0, 0, 0, 0,
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[TransparentWindow] 提到前台失败：{e}");
+            }
+#endif
+        }
+
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        /// <summary>激活窗口（置前台并恢复，若被最小化），使键盘快捷键（I/A/H/T）能收到输入；配合 BringToFront 使用。</summary>
+        public void Activate()
+        {
+#if !UNITY_EDITOR
+            if (_hwnd == IntPtr.Zero) return;
+            try
+            {
+                ShowWindow(_hwnd, SW_RESTORE);
+                SetForegroundWindow(_hwnd);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[TransparentWindow] 激活窗口失败：{e}");
             }
 #endif
         }

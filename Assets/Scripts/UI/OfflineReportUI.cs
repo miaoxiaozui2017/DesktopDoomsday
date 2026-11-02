@@ -13,6 +13,7 @@ namespace DesktopDoomsday.UI
         private GUIStyle _title, _label, _btn, _small;
         private bool _inited;
         private bool _shown;
+        private bool _interactiveOn;
 
         private void EnsureStyles()
         {
@@ -31,7 +32,7 @@ namespace DesktopDoomsday.UI
             if (r.offlineSeconds < 60f) return; // 短暂停机不弹，避免打扰
             if (_shown) return;
 
-            UIHelper.SetInteractive(true); // 弹窗期间关闭穿透以便点击
+            if (!_interactiveOn) { _interactiveOn = true; UIHelper.SetInteractive(true); } // 弹窗期间关闭穿透以便点击（仅一次）
 
             float w = 360f, h = 280f;
             float x = (Screen.width - w) / 2f;
@@ -65,6 +66,7 @@ namespace DesktopDoomsday.UI
             {
                 _shown = true;
                 OfflineSimulator.Pending = default(OfflineReport);
+                _interactiveOn = false;
                 UIHelper.SetInteractive(false);
             }
         }

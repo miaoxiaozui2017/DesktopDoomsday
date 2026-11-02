@@ -103,6 +103,8 @@ namespace DesktopDoomsday.Data
     public class AchievementConfig
     {
         public string id;
+        public string displayName;             // 中文名（图鉴/吐司显示）
+        public string description;             // 达成条件说明
         public string conditionType;           // "distance","chestsOpened","dungeons","zones","resources"
         public float parameter;
     }
@@ -117,6 +119,9 @@ namespace DesktopDoomsday.Data
         public SurvivorConfig survivor;
         public List<DungeonConfig> dungeons = new List<DungeonConfig>();
         public List<AchievementConfig> achievements = new List<AchievementConfig>();
+
+        [Header("窗口行为")]
+        public bool windowTopmost = false;     // false=置于桌面背景之上（不遮挡其它应用）；true=始终置顶
 
         private static GameConfig _instance;
         public static GameConfig Instance

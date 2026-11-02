@@ -134,6 +134,10 @@ namespace DesktopDoomsday.Core
             if (FindObjectOfType<DungeonUI>() == null) gameObject.AddComponent<DungeonUI>();
             if (FindObjectOfType<OfflineReportUI>() == null) gameObject.AddComponent<OfflineReportUI>();
             if (FindObjectOfType<AchievementToast>() == null) gameObject.AddComponent<AchievementToast>();
+            if (FindObjectOfType<AchievementGallery>() == null) gameObject.AddComponent<AchievementGallery>();
+            if (FindObjectOfType<InventoryPanel>() == null) gameObject.AddComponent<InventoryPanel>();
+            if (FindObjectOfType<HelpPanel>() == null) gameObject.AddComponent<HelpPanel>();
+            if (FindObjectOfType<GameHotkeys>() == null) gameObject.AddComponent<GameHotkeys>();
             EnsureWindowLayer();
             EnsurePixelPerfect();
         }

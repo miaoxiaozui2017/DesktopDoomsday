@@ -146,7 +146,11 @@ namespace DesktopDoomsday.UI
             float carW = (VehicleSprite(0, 0) != null ? VehicleSprite(0, 0).bounds.size.x : 2.56f);
             _vehicle = Make("Vehicle", VehicleSprite(0, 0), 10,
                 new Vector3(centerX - 1.5f, roadTop + carH / 2f, 0f), Vector3.one);
-            if (_vehicle != null) _vehBase = _vehicle.transform.localPosition;
+            if (_vehicle != null)
+            {
+                _vehBase = _vehicle.transform.localPosition;
+                _vehicle.color = new Color(1f, 1f, 1f, 0.75f); // 半透明，避免遮挡桌面应用
+            }
 
             // 小人：站在车辆左侧路面上
             float survH = (survivorIdle != null ? survivorIdle.bounds.size.y : 1.6f);
@@ -156,9 +160,10 @@ namespace DesktopDoomsday.UI
                 new Vector3(0.55f, 0.55f, 1f));
             if (_survivor != null) _survBase = _survivor.transform.localPosition;
 
-            // 天气图标：右上角小图标（浮在透明区，不挡桌面）
+            // 天气图标：左上角小图标，缩小+半透明（不喧宾夺主，不挡应用面板）
             _wIcon = Make("Weather", First(weatherIcon), 30,
-                new Vector3(rightX - 0.5f, topY - 0.5f, 0f), Vector3.one * 0.8f);
+                new Vector3(leftX + 0.5f, topY - 0.5f, 0f), Vector3.one * 0.55f);
+            if (_wIcon != null) _wIcon.color = new Color(1f, 1f, 1f, 0.7f);
 
             _lastRes = new Vector2(Screen.width, Screen.height);
         }
@@ -216,20 +221,22 @@ namespace DesktopDoomsday.UI
 
             if (_survivor != null)
             {
-                // 副本待处理：小人走向副本（走路帧 + 左右轻摆），用于验收移动能力
+                // 副本待处理：小人出车走向副本（走路帧 + 左右轻摆），用于验收移动能力
                 if (s.pendingDungeon.HasValue && survivorWalk0 != null && survivorWalk1 != null)
                 {
+                    _survivor.enabled = true;
                     var p = _survBase;
                     p.x += Mathf.Sin(Time.time * 6f) * 0.08f;
                     p.y += Mathf.Abs(Mathf.Sin(Time.time * 9f)) * 0.03f;
                     _survivor.transform.localPosition = p;
                     _survivor.sprite = _frame == 0 ? survivorWalk0 : survivorWalk1;
+                    _survivor.color = s.survivorState == SurvivorState.Weakened
+                        ? new Color(1f, 0.45f, 0.45f) : Color.white;
                 }
                 else
                 {
-                    // 常驻待机：不跟随行走
-                    _survivor.sprite = survivorIdle;
-                    _survivor.transform.localPosition = _survBase;
+                    // 平时回到车里（隐藏），不跟随、不挡屏，符合「小人不用跟着走」
+                    _survivor.enabled = false;
                 }
             }
 

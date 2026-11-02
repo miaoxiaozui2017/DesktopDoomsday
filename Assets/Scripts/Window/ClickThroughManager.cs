@@ -109,14 +109,17 @@ namespace DesktopDoomsday.Window
             return CallNextHookEx(_hookId, nCode, wParam, lParam);
         }
 
-        /// <summary>切换点击穿透（也供托盘菜单调用）。</summary>
+        /// <summary>切换点击穿透（也供托盘菜单调用）。关闭穿透（进入可交互模式）时把窗口提到前台并激活，使键盘快捷键可接收输入。</summary>
         public void Toggle()
         {
             if (TransparentWindow.Instance == null) return;
             bool next = !TransparentWindow.Instance.IsClickThrough;
             TransparentWindow.Instance.SetClickThrough(next);
             if (_loop != null) _loop.SetBackground(next); // 穿透时降频到 5s tick
-            Debug.Log($"[ClickThroughManager] 点击穿透 {(next ? "开启（鼠标穿透桌面，tick=5s）" : "关闭（UI 可点击，tick=1s）")}");
+            var tw = TransparentWindow.Instance;
+            if (next == false) { tw.BringToFront(); tw.Activate(); } // 进入可交互：提到前台并激活，I/A/H/T 才有焦点
+            else { tw.SendToBottom(); }                              // 回到桌面宠物穿透态：沉底
+            Debug.Log($"[ClickThroughManager] 点击穿透 {(next ? "开启（鼠标穿透桌面，tick=5s）" : "关闭（UI 可点击，tick=1s，窗口已提到前台）")}");
         }
 
         private void OnDisable()

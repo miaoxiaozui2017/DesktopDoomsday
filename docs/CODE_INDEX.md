@@ -89,29 +89,33 @@ DesktopDoomsday/
 - **WeatherSystem** ✅：实现 `IWeatherSystem`。按当前区域权重随机抽取天气、持续随机秒数；仅切换顶部小图标与场景色调（`ApplyWeather` 色调修正），不弹模态窗；`Initialize` 设首个天气，`Tick` 推进 `weatherRemainingSeconds` 归零时重抽。`GetWeatherSpeedFactor / GetWeatherChestChanceMod / GetWeatherConsumptionMod` 供公路/宝箱/小人取修正。
 - **VehicleSystem** ✅：实现 `IVehicleSystem`。`SelectVehicle` 选定车辆（三选一、默认皮卡、不可换）；`GetSpeedBonus` 返改装加成；`GetUpgradeCost(track)` 返回下一级所需零件/蓝图（0→1: 15 件+1 蓝；1→2: 30 件+2 蓝）；`TryUpgrade` 校验并扣除、写 `upgradeLevels`。
 - **DungeonSystem** ✅：实现 `IDungeonSystem`（Batch 4 数据层；面板 UI 留 Batch 6）。`Tick(state, dt)` 推进冷却/超时（按真实 dt），冷却结束后按 `triggerChancePerTick` 概率触发（从当前区域 `dungeonPool` 等权抽取）；`TryTrigger` 为概率触发入口。`Complete(id, branch)` 校验 pending 匹配后结算：奖励 = 同期基础挂机收益 × 分支 `rewardMultiplier`（1.8–3.0）+ 蓝图碎片，确定性随机按掉落权重分配（满足 SPEC 验收项 4「2–3 倍」）；`IgnorePending` 超时/主动忽略，重置冷却，公路照常。`GameState` 新增 `autoIgnoreDungeons` / `pauseRoadDuringDungeon`（SPEC 5.6 设置项，默认 false，Batch 6 接 UI）。另提供调试用 `ForceTrigger`。
-- **AchievementSystem** ✅（Batch 7）：实现 `IAchievementSystem`。`Init(state)` 订阅 `GameEvents`（里程/宝箱完成/副本完成/区域变化/物资变化）统计 `_chestsOpened`/`_dungeonsCompleted`，并对照 `GameConfig.achievements` 的 `conditionType`（distance/chestsOpened/dungeons/zones/resources）判定；满足且未解锁则写入 `state.unlockedAchievementIds`（随存档持久化）并触发 `OnAchievementUnlocked`。加载旧档时 `Check(false)` 补判已达成项（不弹提示）。空闲态（桌面宠物）不消耗 CPU。
+- **AchievementSystem** ✅（Batch 7）：实现 `IAchievementSystem`。`Init(state)` 订阅 `GameEvents`（里程/宝箱完成/副本完成/区域变化/物资变化）统计 `_chestsOpened`/`_dungeonsCompleted`，并对照 `GameConfig.achievements` 的 `conditionType`（distance/chestsOpened/dungeons/zones/resources）判定；满足且未解锁则写入 `state.unlockedAchievementIds`（随存档持久化）并触发 `OnAchievementUnlocked`。加载旧档时 `Check(false)` 补判已达成项（不弹提示）。空闲态（桌面宠物）不消耗 CPU。（**共 10 条成就**，由 `DefaultGameConfigCreator` 定义：初出城郊/长途跋涉/末日旅人/第一桶金/拾荒能手/仓库管理员/初探副本/副本老手/跨越荒漠/极地远征。）
 
 ### Window/ — 桌面窗口层（全部 ✅ Batch 5）
-- `TransparentWindow.cs`：Win32 无边框 + `WS_EX_LAYERED` 分层透明（DWM 扩展玻璃 + 相机已设 `RGBA(0,0,0,0)`）+ `WS_EX_TOPMOST` 置顶；`Start` 延迟一帧执行（SPEC 5.9）；**默认开启 `WS_EX_TRANSPARENT` 点击穿透**（桌面宠物模式，不挡桌面操作）；`SetClickThrough(bool)` 切换穿透；`OnApplicationQuit`/`Restore()` 恢复原始样式，移除分层/穿透/置顶（架构红线 4）。全部 `#if UNITY_STANDALONE_WIN && !UNITY_EDITOR` 守卫，仅独立构建生效，编辑器 Play 不受影响。
+- `TransparentWindow.cs`：Win32 无边框 + `WS_EX_LAYERED` 分层透明（DWM 扩展玻璃 + 相机已设 `RGBA(0,0,0,0)`）；`Start` 延迟一帧执行（SPEC 5.9）；**默认开启 `WS_EX_TRANSPARENT` 点击穿透**（桌面宠物模式，不挡桌面操作）。**默认不强制置顶**：按 `GameConfig.windowTopmost`（默认 false）决定 —— false 时把窗口发往 `HWND_BOTTOM`，**仅置于桌面背景之上，不遮挡其它应用**；true 时 `WS_EX_TOPMOST` 始终置顶。`SetClickThrough(bool)` 切换穿透、`SetTopmost(bool)` 运行时切置顶、`SendToBottom()` 回底层、`BringToFront()` 交互时提到前台；`OnApplicationQuit`/`Restore()` 恢复原始样式（架构红线 4）。全部 `#if UNITY_STANDALONE_WIN && !UNITY_EDITOR` 守卫。
 - `ClickThroughManager.cs`：低层键盘钩子（`WH_KEYBOARD_LL`）实现全局热键 **Ctrl+Shift+D** 切换点击穿透（穿透态下仍可捕获）；开启时调 `TransparentWindow.SetClickThrough(true)` 并向 `GameLoop.SetBackground(true)` 把 tick 降到 5s，关闭时反之。
 - `TrayManager.cs`：自建消息专用窗口接收托盘回调，`Shell_NotifyIcon` 托盘图标；最小化时隐藏主窗口并留托盘；右键菜单（显示窗口/隐藏窗口/切换穿透/退出）；`Update` 内手动泵消息。`OnApplicationQuit` 删除图标并销毁窗口。
 
 ### UI/
 - **DebugHud.cs** ✅：开发期调试覆盖层（IMGUI，零预制体）。订阅 `GameEvents` 实时显示里程/速度/区域/天气/小人三需求条形/物资/宝箱计数/FPS/游玩时长，`~` 键开关；并提供调试键 `U`(升级线0) / `P`(+20 零件) / `B`(+5 蓝图)。发布前可隐藏或删除；正式 UI 在 Batch 6 按 SPEC 第 9 节实现。
-- **GameView.cs** ✅（可视冲刺 + Batch 5 打磨）：桌面宠物视图。`Awake` 从 `Resources/Art/Sprites` 载入精灵（`Resources.Load`，编辑器与 Windows 构建通用）；`Start` 设相机正交并居中，`DeferLayout` 等两帧（待 PixelPerfect 设定 `orthographicSize`）后按**实际视野动态布局**：仅建**屏幕底部路带（按屏宽动态平铺、无缝滚动）+ 车辆（轮子落路面）+ 小人（站车左侧路面）+ 宝箱 + 右上角天气图标**，**不画整屏不透明背景**（周围全透明，桌面可见）。分辨率变化自动重排。`Update` 滚动公路、车辆轮子帧、宝箱弹出。小人**常驻待机**（idle 帧），**副本待处理时切换走路帧并左右轻摆**（满足「遇副本测试小人移动能力」），Weakened 变红。车辆大小由 `Bootstrapper` 的 PixelPerfect 参考分辨率（1920×1080）控制。
+- **GameView.cs** ✅（可视冲刺 + Batch 5/8 打磨）：桌面宠物视图。`Awake` 从 `Resources/Art/Sprites` 载入精灵（`Resources.Load`）；`Start` 设相机正交并居中，`DeferLayout` 等两帧后按**实际视野动态布局**：仅建**屏幕底部路带（按屏宽平铺、无缝滚动）+ 车辆 + 小人 + 宝箱 + 左上角天气图标**，**不画整屏不透明背景**（周围全透明，桌面可见），分辨率变化自动重排。`Update` 滚动公路、车辆轮子帧、宝箱弹出。**车辆半透明（alpha 0.75）**避免遮挡应用；**天气图标缩小（0.55）+ 半透明（0.7）并移至左上角**。小人**平时回到车里（隐藏，不跟随、不挡屏）**，**仅副本待处理时出车显示走路帧并左右轻摆**（满足「遇副本测试小人移动能力」，副本结束即隐藏回车），Weakened 变红。车辆大小由 `Bootstrapper` 的 PixelPerfect 参考分辨率（1920×1080）控制。
 - **TechHud.cs** ✅（可视冲刺）：科技感 HUD 雏形（IMGUI，暗玻璃+霓虹描边+条形进度），`M` 键开关、默认显示左下；只读 `GameState` 渲染里程/天气/三项需求/物资，不反写。
 - **FastForward.cs** ✅（可视冲刺）：开发期快进。`F` 长按加速 ×20、`G` 跳 60s、`J` 跳 300s，便于快速验收长线数值。
 - **SurvivorInfoPanel.cs / VehicleInfoPanel.cs** ✅（可视冲刺）：`K`/`V` 键独立属性页（小人三维需求+预留项 / 车型+改装线等级与成本+速度加成）。
-- **UIHelper.cs** ✅（Batch 6 基础设施）：IMGUI（`OnGUI`）运行时工具集（**不依赖 `UnityEngine.UI` 程序集**——部分工程 uGUI 模块未接入会导致 CS0234，故正式 UI 走 IMGUI）。提供：纯色纹理 `DrawRect`/`DrawBorder`、文本与按钮样式构造（统一 SPEC 9.3/9.4 暗玻璃 + 霓虹青描边视觉）、运行时从 `C:/Windows/Fonts/msyh.ttc` 加载中文 CJK 字体（避免缺字框）、`SetInteractive(bool)` 切换点击穿透（需点击的面板显示时关穿透，隐藏后恢复）。
-- **MainHud.cs** ✅（Batch 6）：正式科技感 HUD（IMGUI，替代调试层外观）。左下暗玻璃面板显示里程/区域/天气/小人三需求霓虹条/物资/蓝图/成就计数，每帧 `OnGUI` 直接读 `GameState`（轻量、只读不反写）。
+- **UIHelper.cs** ✅（Batch 6 基础设施）：IMGUI（`OnGUI`）运行时工具集（**不依赖 `UnityEngine.UI` 程序集**——部分工程 uGUI 模块未接入会导致 CS0234，故正式 UI 走 IMGUI）。提供：纯色纹理 `DrawRect`/`DrawBorder`、文本与按钮样式构造（统一 SPEC 9.3/9.4 暗玻璃 + 霓虹青描边视觉）、**运行时从 `Assets/Resources/Fonts/msyh.ttc` 加载中文 CJK 字体**（打包内嵌，避免缺字框）、`Scale`/`S`/`R` 随屏高等比缩放（避免小屏 UI 过小）、`SetInteractive(bool)` **引用计数**切换点击穿透（多个面板开/关互不干扰；最后一个关闭时恢复穿透并把窗口发往底层），交互开启时 `BringToFront`。
+- **MainHud.cs** ✅（Batch 6/8）：正式科技感 HUD（IMGUI，随屏高缩放）。左下暗玻璃面板显示里程/区域/天气/小人三需求霓虹条/物资/蓝图/成就计数（`X/总数`），底部附快捷键提示 `[I]背包 [A]成就 [H]帮助 [T]置顶`，每帧 `OnGUI` 直接读 `GameState`（轻量、只读不反写）。
 - **DungeonUI.cs** ✅（Batch 6）：副本交互（IMGUI）。轮询 `pendingDungeon` 弹底部非模态提示 + 倒计时，点击「查看」打开分支面板（`GameConfig` 分支列表），选择 → `DungeonSystem.Complete` 结算，或忽略；出现时关穿透、清除后恢复；副本超时自动关闭。不暂停公路（PauseRoadDuringDungeon 默认 false）。
 - **OfflineReportUI.cs** ✅（Batch 6）：启动读取 `OfflineSimulator.Pending`，离线 ≥60s 弹「离线收益结算」面板（时长/里程/小人状态/物资变化），关闭恢复穿透。
-- **AchievementToast.cs** ✅（Batch 7）：成就解锁顶部居中吐司（内置中文名映射，无需改数据类），3.5s 自动消失，非交互（不切穿透，保持宠物态）。
+- **AchievementToast.cs** ✅（Batch 7/8）：成就解锁顶部居中吐司，**优先读 `GameConfig.achievements[].displayName`**（`DefaultGameConfigCreator` 已填 10 条中文名），无则回退内置映射；3.5s 自动消失，非交互（不切穿透，保持宠物态）。
+- **AchievementGallery.cs** ✅（Batch 8）：成就图鉴（`A` 键开/关）。列出 `GameConfig.achievements` 全部条目（中文名/说明/已解锁✓或未完成☆），顶部显示 `已解锁/总数`，关闭恢复穿透。
+- **InventoryPanel.cs** ✅（Batch 8）：背包/物资页（`I` 键开/关）。详细列出全部资源数量（食/水/药/油/件/蓝图）、当前车辆与改装等级、小人三项需求霓虹条与状态，关闭恢复穿透。
+- **HelpPanel.cs** ✅（Batch 8）：帮助页（`H` 键开/关）。GUILayout 滚动说明玩法、如何退出（托盘右键→退出 / Alt+F4）、正式快捷键、调试快捷键、窗口图层行为、重置存档。
+- **GameHotkeys.cs** ✅（Batch 8）：正式玩法快捷键路由（始终生效）：`I`背包 / `A`成就图鉴 / `H`帮助 / `T`切换窗口置顶（调 `TransparentWindow.SetTopmost`）。与 `DebugHud` 调试键分离。
 - **OfflineSimulator.cs** ✅（Batch 6，Core）：`Simulate(state, seconds)` 以 5s 步长、小人 0.5× 消耗速率模拟离线 tick，不生成宝箱/副本，返回 `OfflineReport`（距离增量 + 物资变化 + 小人状态）；`Bootstrapper` 加载后调用并暂存 `Pending`。
 
 ### Data/
 - **Enums.cs** ✅：枚举 `VehicleId(Pickup/Van/Motorcycle)`、`WeatherId(Sunny/Rainstorm/Sandstorm/ExtremeCold)`、`DungeonId(WarehouseRaid/ConvoyChase)`、`ChestType(Mileage/Random/Dungeon)`、`SurvivorState(Normal/Weakened)`、`ZoneId(Suburb/Desert/Tundra)`。
-- **GameConfig.cs** ✅：`ScriptableObject` 静态配置表。含实体类 `VehicleConfig / ZoneConfig / WeatherConfig / ResourceConfig / SurvivorConfig / DungeonConfig / AchievementConfig` 及子结构 `UpgradeTrack / ZoneWeatherWeight / ResourceDropWeight / DungeonBranch`。`Instance` 从 `Resources.Load<GameConfig>("GameConfig")` 加载（对应 `Resources/GameConfig.asset`）。所有系统优先读此表，缺失时回退兜底常量，保证空配置也能运行。
+- **GameConfig.cs** ✅：`ScriptableObject` 静态配置表。含实体类 `VehicleConfig / ZoneConfig / WeatherConfig / ResourceConfig / SurvivorConfig / DungeonConfig / AchievementConfig`（**新增 `displayName`/`description`**）及子结构 `UpgradeTrack / ZoneWeatherWeight / ResourceDropWeight / DungeonBranch`。`Instance` 从 `Resources.Load<GameConfig>("GameConfig")` 加载。`AchievementConfig` 现已填 10 条中文名。`windowTopmost`（默认 false）控制窗口是否强制置顶。所有系统优先读此表，缺失时回退兜底常量。
 - **DTO/SaveData.cs** ✅：存档 DTO `version(int) + state(GameState) + savedAtUnixMs(long)`；依赖 Newtonsoft.Json 序列化 `HashSet` 等。
 
 ---
@@ -127,4 +131,5 @@ DesktopDoomsday/
 | 5 | 桌面窗口层 | ✅ 已实现（透明/置顶/穿透热键 + 托盘；仅 Windows 独立构建生效） |
 | 6 | 正式 UI（MainHud/DungeonUI/OfflineReportUI）/ 离线报告 | ✅ 已实现（IMGUI / OnGUI，零预制体，规避 uGUI 模块依赖） |
 | 7 | 成就（10）/ 性能打磨 | ✅ 已实现（AchievementSystem + 吐司；轻量节流刷新，CPU 友好） |
+| 8 | 体验打磨：成就图鉴 / 背包页 / 帮助页 / 窗口图层 / UI 缩放 | ✅ 已实现（A·I·H·T 快捷键；默认仅置桌面背景之上；UI 随屏高缩放；车辆半透明；小人副本后才出车） |
 > 注：曾评估「账号插槽 / 新游戏菜单」多存档方案（feature/visual 内），已按用户决定**回退为单份全局 `save.json`**，保持简单。清档仍靠删除 `save.json`。
