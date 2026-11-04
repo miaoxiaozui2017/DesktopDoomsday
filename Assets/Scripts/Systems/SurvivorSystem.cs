@@ -73,6 +73,30 @@ namespace DesktopDoomsday.Systems
 
         public bool IsWeakened(GameState state) => state.survivorState == SurvivorState.Weakened;
 
+        /// <summary>
+        /// 一键补满（UI「小人属性页/背包页」按钮调用）：对每项未满需求消耗 1 单位对应物资补到 100
+        /// （food→饥饿, water→口渴, medicine→生命），与 Tick 内 TryRefill 的口径一致。
+        /// 全部已满或无可用物资时不消耗。补满后若三值均 &gt;60 且处于 Weakened，则同步解除为 Normal。
+        /// </summary>
+        public bool FillAllNeeds(GameState state)
+        {
+            bool consumed = false;
+            if (state.hunger < 100f && _inventory.TryConsume(state, "food", 1))
+            { state.hunger = RestorePerConsume; consumed = true; }
+            if (state.thirst < 100f && _inventory.TryConsume(state, "water", 1))
+            { state.thirst = RestorePerConsume; consumed = true; }
+            if (state.health < 100f && _inventory.TryConsume(state, "medicine", 1))
+            { state.health = RestorePerConsume; consumed = true; }
+
+            if (consumed && state.survivorState == SurvivorState.Weakened &&
+                state.hunger > 60f && state.thirst > 60f && state.health > 60f)
+            {
+                state.survivorState = SurvivorState.Normal;
+                GameEvents.RaiseSurvivorStateChanged(SurvivorState.Normal);
+            }
+            return consumed;
+        }
+
         private void Drain(ref float value, float amount)
         {
             value -= amount;

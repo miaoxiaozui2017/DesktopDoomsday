@@ -14,14 +14,17 @@ namespace DesktopDoomsday.UI
         private bool _inited;
         private bool _shown;
         private bool _interactiveOn;
+        private float _k;
 
         private void EnsureStyles()
         {
-            if (_inited) return;
-            _title = UIHelper.NewLabelStyle(17, UIHelper.C_Cyan, TextAnchor.MiddleCenter, true);
-            _label = UIHelper.NewLabelStyle(13, UIHelper.C_Text, TextAnchor.MiddleLeft);
-            _small = UIHelper.NewLabelStyle(12, UIHelper.C_Text, TextAnchor.MiddleLeft);
-            _btn = UIHelper.NewButtonStyle(13, UIHelper.C_Cyan);
+            float k = UIHelper.Scale;
+            if (_inited && Mathf.Abs(k - _k) < 0.001f) return;
+            _k = k;
+            _title = UIHelper.NewLabelStyle((int)(17 * k), UIHelper.C_Cyan, TextAnchor.MiddleCenter, true);
+            _label = UIHelper.NewLabelStyle((int)(13 * k), UIHelper.C_Text, TextAnchor.MiddleLeft);
+            _small = UIHelper.NewLabelStyle((int)(12 * k), UIHelper.C_Text, TextAnchor.MiddleLeft);
+            _btn = UIHelper.NewButtonStyle((int)(13 * k), UIHelper.C_Cyan);
             _inited = true;
         }
 
@@ -32,37 +35,43 @@ namespace DesktopDoomsday.UI
             if (r.offlineSeconds < 60f) return; // 短暂停机不弹，避免打扰
             if (_shown) return;
 
-            if (!_interactiveOn) { _interactiveOn = true; UIHelper.SetInteractive(true); } // 弹窗期间关闭穿透以便点击（仅一次）
+            // 启动即弹的离线报告：TransparentWindow 透明化在协程里延迟一帧，会把刚关的穿透重新打开。
+            // 因此打开时计数 +1（SetInteractive），之后每帧持续确保穿透关闭 + 窗口在前（EnsureForeground，不碰计数），
+            // 对抗延迟生效的穿透样式与 Windows 防抢焦点限制，保证「收下」按钮立即可点。
+            if (!_interactiveOn) { _interactiveOn = true; UIHelper.SetInteractive(true); }
+            UIHelper.EnsureForeground(); // 每帧重申：关穿透 + 强制激活（AttachThreadInput 绕过系统限制）
 
-            float w = 360f, h = 280f;
+            float k = UIHelper.Scale;
+            float w = 380f * k;
+            float h = 320f * k;
             float x = (Screen.width - w) / 2f;
             float y = (Screen.height - h) / 2f;
             UIHelper.DrawRect(new Rect(x, y, w, h), UIHelper.C_Panel);
             UIHelper.DrawBorder(x, y, w, h, UIHelper.C_Cyan);
-            float cx = x + 18f;
-            float cy = y + 16f;
-            GUI.Label(new Rect(cx, cy, w - 36f, 24f), "离线收益结算", _title);
-            cy += 30f;
-            GUI.Label(new Rect(cx, cy, w - 36f, 20f), $"你离开了约 {FormatDuration(r.offlineSeconds)}", _small);
-            cy += 26f;
-            GUI.Label(new Rect(cx, cy, w - 36f, 20f), $"推进里程：+{r.distanceGain:F1} km", _label);
-            cy += 24f;
-            GUI.Label(new Rect(cx, cy, w - 36f, 20f), "资源变化：", _label);
-            cy += 22f;
+            float cx = x + 18f * k;
+            float cy = y + 16f * k;
+            GUI.Label(new Rect(cx, cy, w - 36f * k, 26f * k), "离线收益结算", _title);
+            cy += 32f * k;
+            GUI.Label(new Rect(cx, cy, w - 36f * k, 22f * k), $"你离开了约 {FormatDuration(r.offlineSeconds)}", _small);
+            cy += 26f * k;
+            GUI.Label(new Rect(cx, cy, w - 36f * k, 22f * k), $"推进里程：+{r.distanceGain:F1} km", _label);
+            cy += 26f * k;
+            GUI.Label(new Rect(cx, cy, w - 36f * k, 22f * k), "资源变化：", _label);
+            cy += 24f * k;
             if (r.resourceChanges != null)
             {
                 foreach (var d in r.resourceChanges)
                 {
                     if (d.delta == 0) continue;
-                    GUI.Label(new Rect(cx + 12f, cy, w - 48f, 18f), $"{ResName(d.resource)} {d.delta:+0;-0}", _small);
-                    cy += 18f;
+                    GUI.Label(new Rect(cx + 12f * k, cy, w - 48f * k, 22f * k), $"{ResName(d.resource)} {d.delta:+0;-0}", _small);
+                    cy += 22f * k;
                 }
             }
-            cy += 6f;
-            GUI.Label(new Rect(cx, cy, w - 36f, 20f),
+            cy += 6f * k;
+            GUI.Label(new Rect(cx, cy, w - 36f * k, 22f * k),
                 $"小人状态：{(r.survivorState == SurvivorState.Weakened ? "虚弱（降速）" : "正常")}", _small);
-            cy += 34f;
-            if (GUI.Button(new Rect(cx, cy, w - 36f, 34f), "收下", _btn))
+            cy += 34f * k;
+            if (GUI.Button(new Rect(cx, cy, w - 36f * k, 34f * k), "收下", _btn))
             {
                 _shown = true;
                 OfflineSimulator.Pending = default(OfflineReport);

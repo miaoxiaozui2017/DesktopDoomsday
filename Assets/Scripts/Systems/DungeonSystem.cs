@@ -140,6 +140,33 @@ namespace DesktopDoomsday.Systems
             return true;
         }
 
+        // ---------- 奖励估算（供 UI 展示，只读） ----------
+
+        /// <summary>
+        /// 估算当前待处理副本的奖励区间（物资单位数，蓝图碎片另计）。
+        /// 计算口径与 Complete 一致：基础挂机期望 × 各分支 rewardMultiplier，取全部分支的最小/最大值。
+        /// </summary>
+        public bool TryEstimatePendingReward(GameState state, out int minUnits, out int maxUnits)
+        {
+            minUnits = 0; maxUnits = 0;
+            var def = CurrentPendingDef(state);
+            if (def == null || def.branches.Count == 0) return false;
+
+            float idleUnits = BaseChestUnitsPerTick(state) * (def.durationSeconds / BaseTickSeconds);
+            float min = float.MaxValue, max = float.MinValue;
+            foreach (var b in def.branches)
+            {
+                float v = idleUnits * b.rewardMultiplier;
+                if (v < min) min = v;
+                if (v > max) max = v;
+            }
+            minUnits = (int)(min + 0.5f);
+            maxUnits = (int)(max + 0.5f);
+            if (minUnits < 1) minUnits = 1;
+            if (maxUnits < minUnits) maxUnits = minUnits;
+            return true;
+        }
+
         // ---------- 内部辅助 ----------
 
         private List<DungeonId> CurrentZonePool(GameState state, GameConfig cfg)

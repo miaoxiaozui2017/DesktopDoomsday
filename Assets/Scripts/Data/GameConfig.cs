@@ -39,6 +39,7 @@ namespace DesktopDoomsday.Data
         public ZoneId id;
         public string name;
         public float unlockDistanceKm;
+        public float monsterChancePerChest;   // 该区域开箱遇怪基础概率（城郊低、冻原高）
         public List<ZoneWeatherWeight> weatherWeightTable = new List<ZoneWeatherWeight>();
         public List<DungeonId> dungeonPool = new List<DungeonId>();
     }
@@ -52,6 +53,7 @@ namespace DesktopDoomsday.Data
         public float fuelMultiplier = 1f;
         public float chestChanceBonus;        // 相对基准的加成（如 +0.1）
         public float survivorDrainMultiplier = 1f;
+        public float monsterChanceMultiplier = 1f; // 开箱遇怪概率系数（晴天 0.4 = 怪物少见）
         public Vector2 durationRange = new Vector2(30f, 90f);
     }
 

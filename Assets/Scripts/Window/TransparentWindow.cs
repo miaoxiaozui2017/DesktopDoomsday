@@ -1,6 +1,7 @@
 #if UNITY_STANDALONE_WIN
 using System;
 using System.Runtime.InteropServices;
+using DesktopDoomsday.Data;
 using UnityEngine;
 
 namespace DesktopDoomsday.Window
@@ -136,6 +137,9 @@ namespace DesktopDoomsday.Window
                 SetWindowLong(_hwnd, GWL_EXSTYLE, exStyle);
                 _clickThrough = true;
 
+                // 联动帧率：启动默认穿透态 → 20fps（小车不卡，CPU 友好；后台 tick 5s 间隔不受影响）
+                Application.targetFrameRate = 20;
+
                 // 3) 分层窗口全不透明（默认），透明靠 DWM 玻璃扩展 + 相机 alpha
                 SetLayeredWindowAttributes(_hwnd, 0, 255, LWA_ALPHA);
 
@@ -155,10 +159,15 @@ namespace DesktopDoomsday.Window
             }
         }
 
-        /// <summary>切换点击穿透：on=true 时 WS_EX_TRANSPARENT，鼠标穿透到桌面；false 时恢复可交互。</summary>
+        /// <summary>切换点击穿透：on=true 时 WS_EX_TRANSPARENT，鼠标穿透到桌面；false 时恢复可交互。
+        /// 同时联动帧率：穿透态（挂机）降到 20fps 平衡流畅与省电；交互态 30fps。
+        /// 加状态变化守卫：状态没变时直接 return，支持每帧安全调用（EnsureForeground）零开销。</summary>
         public void SetClickThrough(bool on)
         {
+            if (_clickThrough == on) return; // 状态没变，跳过（避免每帧重复设置样式与帧率）
             _clickThrough = on;
+            // 联动帧率：挂机穿透态 20fps（小车不卡，CPU 友好）；交互态 30fps
+            Application.targetFrameRate = on ? 20 : 30;
 #if !UNITY_EDITOR
             if (_hwnd == IntPtr.Zero) return;
             try
@@ -236,6 +245,18 @@ namespace DesktopDoomsday.Window
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
 
+        // 强制激活所需：绕过 Windows「防抢焦点」限制（启动瞬间 SetForegroundWindow 会被系统拒绝）
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+        [DllImport("user32.dll")]
+        private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+        [DllImport("kernel32.dll")]
+        private static extern uint GetCurrentThreadId();
+        [DllImport("user32.dll")]
+        private static extern bool BringWindowToTop(IntPtr hWnd);
+
         /// <summary>激活窗口（置前台并恢复，若被最小化），使键盘快捷键（I/A/H/T）能收到输入；配合 BringToFront 使用。</summary>
         public void Activate()
         {
@@ -249,6 +270,53 @@ namespace DesktopDoomsday.Window
             catch (Exception e)
             {
                 Debug.LogError($"[TransparentWindow] 激活窗口失败：{e}");
+            }
+#endif
+        }
+
+        /// <summary>
+        /// 强制激活窗口到前台并获得输入焦点。用 AttachThreadInput 技巧绕过 Windows 的「防抢焦点」限制
+        /// （刚启动的进程直接调 SetForegroundWindow 会被系统拒绝，仅闪烁任务栏）。
+        /// 典型场景：游戏启动即弹离线收益报告、副本触发时需要立即可点击——此时用户尚未操作游戏窗口，
+        /// 普通 SetForegroundWindow 失败，必须 attach 当前前台窗口的线程输入队列后才能成功抢前台。
+        /// </summary>
+        public void ForceActivate()
+        {
+#if !UNITY_EDITOR
+            if (_hwnd == IntPtr.Zero) return;
+            try
+            {
+                uint myThread = GetCurrentThreadId();
+                IntPtr fg = GetForegroundWindow();
+                uint fgThread = 0;
+                if (fg != IntPtr.Zero) GetWindowThreadProcessId(fg, out fgThread);
+
+                if (fgThread != 0 && fgThread != myThread)
+                {
+                    // 把当前前台窗口的线程与我们的线程输入队列 attach，绕过 SetForegroundWindow 限制
+                    AttachThreadInput(fgThread, myThread, true);
+                    try
+                    {
+                        ShowWindow(_hwnd, SW_RESTORE);
+                        SetForegroundWindow(_hwnd);
+                        BringWindowToTop(_hwnd);
+                    }
+                    finally
+                    {
+                        AttachThreadInput(fgThread, myThread, false);
+                    }
+                }
+                else
+                {
+                    // 已经是前台线程或无前台窗口，直接尝试
+                    ShowWindow(_hwnd, SW_RESTORE);
+                    SetForegroundWindow(_hwnd);
+                    BringWindowToTop(_hwnd);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[TransparentWindow] 强制激活失败：{e}");
             }
 #endif
         }

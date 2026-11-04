@@ -116,6 +116,13 @@ namespace DesktopDoomsday.Core
             {
                 cam.clearFlags = CameraClearFlags.SolidColor;
                 cam.backgroundColor = new Color(0f, 0f, 0f, 0f);
+
+                // 构建禁用了 Audio 模块：移除场景相机上的 AudioListener，消除运行时持续警告。
+                // 用类型名匹配而非硬引用 UnityEngine.AudioModule 类型，避免与模块裁剪冲突（游戏无声，无需监听器）。
+                foreach (var c in cam.GetComponents<Component>())
+                {
+                    if (c != null && c.GetType().Name == "AudioListener") Destroy(c);
+                }
             }
         }
 
@@ -126,7 +133,7 @@ namespace DesktopDoomsday.Core
         private void EnsureVisualLayer()
         {
             if (FindObjectOfType<GameView>() == null) gameObject.AddComponent<GameView>();
-            if (FindObjectOfType<TechHud>() == null) gameObject.AddComponent<TechHud>();
+            // TechHud（M 键旧 HUD）已下线：左下角只保留 MainHud「末日公路·状态面板」，避免两面板叠加遮挡文字。
             if (FindObjectOfType<FastForward>() == null) gameObject.AddComponent<FastForward>();
             if (FindObjectOfType<SurvivorInfoPanel>() == null) gameObject.AddComponent<SurvivorInfoPanel>();
             if (FindObjectOfType<VehicleInfoPanel>() == null) gameObject.AddComponent<VehicleInfoPanel>();
@@ -142,12 +149,11 @@ namespace DesktopDoomsday.Core
             EnsurePixelPerfect();
         }
 
-        /// <summary>桌面窗口层（Batch 5）：透明/置顶/穿透 + 托盘。仅在 Windows 独立构建生效，编辑器为 no-op。</summary>
+        /// <summary>桌面窗口层（Batch 5）：透明/穿透。仅在 Windows 独立构建生效，编辑器为 no-op。托盘已按用户要求移除（退出靠面板按钮或 Alt+F4）。</summary>
         private void EnsureWindowLayer()
         {
             if (FindObjectOfType<TransparentWindow>() == null) gameObject.AddComponent<TransparentWindow>();
             if (FindObjectOfType<ClickThroughManager>() == null) gameObject.AddComponent<ClickThroughManager>();
-            if (FindObjectOfType<TrayManager>() == null) gameObject.AddComponent<TrayManager>();
         }
 
         /// <summary>反射式挂 Pixel Perfect Camera：包未导入时静默跳过，不产生硬编译依赖。</summary>

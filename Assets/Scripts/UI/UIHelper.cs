@@ -114,8 +114,9 @@ namespace DesktopDoomsday.UI
 
         /// <summary>
         /// 交互态切换点击穿透（引用计数，支持多个面板同时开/关互不干扰）。
-        /// interactive=true：计数 +1，关闭穿透（可点 UI）；
+        /// interactive=true：计数 +1，关闭穿透（可点 UI）、提前台并强制激活（获得键盘焦点，I/A/H/K/V 等快捷键可用）；
         /// interactive=false：计数 -1，归零时恢复桌面宠物穿透态并把窗口发往底层（仅桌面背景之上）。
+        /// 典型场景：副本/离线报告弹出即自动进入可操作态，玩家无需先按 Ctrl+Shift+D；处理完自动恢复挂机态。
         /// </summary>
         private static int _interactiveCount;
         public static void SetInteractive(bool interactive)
@@ -128,6 +129,7 @@ namespace DesktopDoomsday.UI
                 _interactiveCount++;
                 tw.SetClickThrough(false);
                 tw.BringToFront();
+                tw.ForceActivate(); // AttachThreadInput 技巧强制抢前台（启动瞬间也能成功）
             }
             else
             {
@@ -138,6 +140,24 @@ namespace DesktopDoomsday.UI
                     tw.SendToBottom();
                 }
             }
+#endif
+        }
+
+        /// <summary>
+        /// 每帧持续确保窗口可交互（穿透关闭），不碰引用计数，不调重操作。
+        /// 用于启动时即弹出的面板（如离线收益报告）：TransparentWindow 的透明化在协程里延迟一帧执行，
+        /// 会把 SetInteractive(true) 刚关掉的穿透重新打开；本方法每帧重申关穿透，覆盖延迟生效的穿透样式。
+        /// SetClickThrough 有状态变化守卫，状态没变时直接 return，每帧调用零开销。
+        /// 注意：不在此处调 ForceActivate（6 个 P/Invoke 太重，每帧调会 CPU 飙升）；
+        /// 焦点抢夺只在 SetInteractive(true) 面板打开瞬间调一次即可。
+        /// 面板关闭时仍需调 SetInteractive(false) 归零计数并恢复挂机态。
+        /// </summary>
+        public static void EnsureForeground()
+        {
+#if UNITY_STANDALONE_WIN
+            var tw = TransparentWindow.Instance;
+            if (tw == null) return;
+            tw.SetClickThrough(false); // 状态守卫：已是关穿透态时直接 return，零开销
 #endif
         }
     }

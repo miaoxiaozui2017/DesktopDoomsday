@@ -66,7 +66,7 @@ namespace DesktopDoomsday.EditorTools
             {
                 new ZoneConfig
                 {
-                    id = ZoneId.Suburb, name = "城郊", unlockDistanceKm = 0f,
+                    id = ZoneId.Suburb, name = "城郊", unlockDistanceKm = 0f, monsterChancePerChest = 0.05f,
                     weatherWeightTable = new List<ZoneWeatherWeight>
                     {
                         new ZoneWeatherWeight { weather = WeatherId.Sunny, weight = 60f },
@@ -77,7 +77,7 @@ namespace DesktopDoomsday.EditorTools
                 },
                 new ZoneConfig
                 {
-                    id = ZoneId.Desert, name = "荒漠", unlockDistanceKm = 30f,
+                    id = ZoneId.Desert, name = "荒漠", unlockDistanceKm = 30f, monsterChancePerChest = 0.15f,
                     weatherWeightTable = new List<ZoneWeatherWeight>
                     {
                         new ZoneWeatherWeight { weather = WeatherId.Sunny, weight = 40f },
@@ -88,7 +88,7 @@ namespace DesktopDoomsday.EditorTools
                 },
                 new ZoneConfig
                 {
-                    id = ZoneId.Tundra, name = "冻原", unlockDistanceKm = 120f,
+                    id = ZoneId.Tundra, name = "冻原", unlockDistanceKm = 120f, monsterChancePerChest = 0.25f,
                     weatherWeightTable = new List<ZoneWeatherWeight>
                     {
                         new ZoneWeatherWeight { weather = WeatherId.Sunny, weight = 35f },
@@ -101,23 +101,24 @@ namespace DesktopDoomsday.EditorTools
 
             cfg.weathers = new List<WeatherConfig>
             {
-                new WeatherConfig { id = WeatherId.Sunny, displayName = "晴天", speedMultiplier = 1.0f, fuelMultiplier = 1.0f, chestChanceBonus = 0f, survivorDrainMultiplier = 1.0f, durationRange = new Vector2(60f, 120f) },
-                new WeatherConfig { id = WeatherId.Rainstorm, displayName = "暴雨", speedMultiplier = 0.85f, fuelMultiplier = 1.0f, chestChanceBonus = 0.10f, survivorDrainMultiplier = 1.0f, durationRange = new Vector2(30f, 60f) },
-                new WeatherConfig { id = WeatherId.Sandstorm, displayName = "沙暴", speedMultiplier = 0.90f, fuelMultiplier = 1.25f, chestChanceBonus = 0.05f, survivorDrainMultiplier = 1.0f, durationRange = new Vector2(30f, 60f) },
-                new WeatherConfig { id = WeatherId.ExtremeCold, displayName = "极寒", speedMultiplier = 0.90f, fuelMultiplier = 1.0f, chestChanceBonus = 0f, survivorDrainMultiplier = 1.3f, durationRange = new Vector2(40f, 80f) },
+                new WeatherConfig { id = WeatherId.Sunny, displayName = "晴天", speedMultiplier = 1.0f, fuelMultiplier = 1.0f, chestChanceBonus = 0f, survivorDrainMultiplier = 1.0f, monsterChanceMultiplier = 0.4f, durationRange = new Vector2(60f, 120f) },
+                new WeatherConfig { id = WeatherId.Rainstorm, displayName = "暴雨", speedMultiplier = 0.85f, fuelMultiplier = 1.0f, chestChanceBonus = 0.10f, survivorDrainMultiplier = 1.0f, monsterChanceMultiplier = 1.0f, durationRange = new Vector2(30f, 60f) },
+                new WeatherConfig { id = WeatherId.Sandstorm, displayName = "沙暴", speedMultiplier = 0.90f, fuelMultiplier = 1.25f, chestChanceBonus = 0.05f, survivorDrainMultiplier = 1.0f, monsterChanceMultiplier = 1.3f, durationRange = new Vector2(30f, 60f) },
+                new WeatherConfig { id = WeatherId.ExtremeCold, displayName = "极寒", speedMultiplier = 0.90f, fuelMultiplier = 1.0f, chestChanceBonus = 0f, survivorDrainMultiplier = 1.3f, monsterChanceMultiplier = 1.2f, durationRange = new Vector2(40f, 80f) },
             };
 
             cfg.resources = new ResourceConfig
             {
-                initialFood = 50, initialWater = 50, initialMedicine = 30, initialFuel = 100, initialParts = 20,
-                baseChestChance = 0.02f,
+                // 收紧（Batch 8 反馈）：初始物资减半、宝箱概率折半、零件权重极低（升级主要靠副本蓝图）
+                initialFood = 35, initialWater = 35, initialMedicine = 20, initialFuel = 80, initialParts = 10,
+                baseChestChance = 0.014f,
                 dropWeights = new List<ResourceDropWeight>
                 {
-                    new ResourceDropWeight { resource = "food", weight = 30f },
-                    new ResourceDropWeight { resource = "water", weight = 30f },
-                    new ResourceDropWeight { resource = "medicine", weight = 15f },
-                    new ResourceDropWeight { resource = "fuel", weight = 15f },
-                    new ResourceDropWeight { resource = "parts", weight = 10f },
+                    new ResourceDropWeight { resource = "food", weight = 31f },
+                    new ResourceDropWeight { resource = "water", weight = 31f },
+                    new ResourceDropWeight { resource = "medicine", weight = 18f },
+                    new ResourceDropWeight { resource = "fuel", weight = 16f },
+                    new ResourceDropWeight { resource = "parts", weight = 4f },
                 }
             };
 

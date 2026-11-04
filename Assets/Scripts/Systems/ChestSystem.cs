@@ -16,7 +16,12 @@ namespace DesktopDoomsday.Systems
         private readonly InventorySystem _inventory = new InventorySystem();
 
         // 兜底：里程宝箱基础阈值（km）；车辆/区域可在配置中覆盖（Batch 3 接入区域表）。
-        private const float DefaultMileageBase = 2f;
+        // 收紧：2km → 4km，降低物资获取速度（Batch 8 反馈）。
+        private const float DefaultMileageBase = 3f;
+
+        // 遇怪伤害区间（三需求各扣 10–20 点，钳制 ≥1 不致死）
+        private const float MonsterDamageMin = 10f;
+        private const float MonsterDamageMax = 20f;
 
         public void Tick(GameState state, float deltaSeconds)
         {
@@ -44,18 +49,19 @@ namespace DesktopDoomsday.Systems
             var cfg = GameConfig.Instance;
             var rng = new DeterministicRandom(state.rngSeed);
 
-            int count = 1 + rng.NextInt(3); // 1..3 种
+            int count = 1 + rng.NextInt(2); // 1..2 种（收紧：原来 1..3）
             var result = new ChestOpenResult
             {
                 type = type,
                 rewards = new List<ResourceDelta>(),
                 blueprintFragments = 0,
+                monsterEncounter = false,
             };
 
             for (int i = 0; i < count; i++)
             {
                 string res = PickWeightedResource(rng, cfg);
-                int amt = 1 + rng.NextInt(4); // 1..4
+                int amt = 1 + rng.NextInt(2); // 1..2 单位（收紧：原来 1..4）
                 _inventory.Add(state, res, amt);
                 result.rewards.Add(new ResourceDelta { resource = res, delta = amt });
             }
@@ -67,9 +73,31 @@ namespace DesktopDoomsday.Systems
             if (type == ChestType.Dungeon)
                 state.blueprintFragments += result.blueprintFragments;
 
+            // 开箱遇怪：区域基础概率 × 天气系数；扣三需求，钳制 ≥1（硬约束：不致死，只会进虚弱）
+            float monsterChance = MonsterChance(state, cfg);
+            if (rng.NextFloat() < monsterChance)
+            {
+                result.monsterEncounter = true;
+                state.hunger = System.Math.Max(1f, state.hunger - (MonsterDamageMin + rng.NextFloat() * (MonsterDamageMax - MonsterDamageMin)));
+                state.thirst = System.Math.Max(1f, state.thirst - (MonsterDamageMin + rng.NextFloat() * (MonsterDamageMax - MonsterDamageMin)));
+                state.health = System.Math.Max(1f, state.health - (MonsterDamageMin + rng.NextFloat() * (MonsterDamageMax - MonsterDamageMin)));
+            }
+
             state.rngSeed = rng.State; // 持久化随机状态
             GameEvents.RaiseChestOpened(result);
             return result;
+        }
+
+        /// <summary>开箱遇怪概率 = 当前区域基础概率 × 当前天气系数（旧配置资产缺字段时按 0 处理，即不遇怪）。</summary>
+        private float MonsterChance(GameState state, GameConfig cfg)
+        {
+            if (cfg == null) return 0f;
+            int idx = state.currentZoneIndex;
+            ZoneConfig zone = (idx >= 0 && idx < cfg.zones.Count) ? cfg.zones[idx] : null;
+            if (zone == null) return 0f;
+            var wc = cfg.weathers.FirstOrDefault(w => w.id == state.currentWeather);
+            float weatherMult = (wc != null) ? wc.monsterChanceMultiplier : 1f;
+            return zone.monsterChancePerChest * weatherMult;
         }
 
         private float BaseChestChance(GameState state)

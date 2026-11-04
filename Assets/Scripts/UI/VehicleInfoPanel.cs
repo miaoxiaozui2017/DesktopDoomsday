@@ -7,27 +7,43 @@ using DesktopDoomsday.Systems;
 namespace DesktopDoomsday.UI
 {
     /// <summary>
-    /// 车辆独立属性页（按 V 单独调取）。
-    /// 展示当前车辆肖像、改装线等级、下一级所需 P/B 成本、已叠加速度加成、蓝图/零件存量。
-    /// 仅读取 GameState / VehicleSystem / GameConfig，不反写。
+    /// 车辆独立属性页（按 V 调取，IMGUI 版，随分辨率缩放 + 中文字体）。
+    /// 展示当前车辆肖像、两条改装线（引擎=速度 / 货箱=容量）的等级、当前效果、下一级成本，
+    /// 并提供每条线的「升级」按钮（VehicleSystem.TryUpgrade：消耗零件 + 蓝图碎片）。
+    /// 打开期间自动关闭点击穿透（SetInteractive）以便点击；关闭后恢复桌面宠物穿透态。
     /// </summary>
     public class VehicleInfoPanel : MonoBehaviour
     {
+        public static VehicleInfoPanel Instance { get; private set; }
         public bool show;
-        private Texture2D _white;
         private Sprite[] _vehFrames = new Sprite[3]; // 三种车各取第 0 帧
-        private GUIStyle _title, _text, _small;
+        private GUIStyle _title, _text, _small, _hint, _btn, _btnOff;
         private bool _stylesReady;
+        private float _k;
 
         private void Awake()
         {
-            _white = Texture2D.whiteTexture;
+            Instance = this;
             LoadFrames();
+        }
+
+        private void OnDestroy()
+        {
+            if (show) UIHelper.SetInteractive(false);
+            if (Instance == this) Instance = null;
+        }
+
+        /// <summary>开关面板（供 MainHud 按钮调用，与 InventoryPanel.Toggle 同模式）。</summary>
+        public static void Toggle()
+        {
+            if (Instance == null) return;
+            Instance.show = !Instance.show;
+            UIHelper.SetInteractive(Instance.show);
         }
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.V)) show = !show;
+            if (Input.GetKeyDown(KeyCode.V)) Toggle();
         }
 
         private void OnGUI()
@@ -38,80 +54,114 @@ namespace DesktopDoomsday.UI
             if (s == null || vs == null) return;
             EnsureStyles();
 
-            float w = 392f, h = 286f;
-            var p = new Rect(Screen.width - w - 16f, 16f, w, h);
-            Fill(p, new Color(0.043f, 0.055f, 0.078f, 0.92f));
-            Border(p);
-
-            float x = p.x + 12f, y = p.y + 10f;
-            GUI.Label(new Rect(x, y, w - 24f, 20f), "车辆 · VEHICLE", _title); y += 26f;
-
-            // 肖像（右侧）
-            var fr = _vehFrames.Length > (int)s.currentVehicle ? _vehFrames[(int)s.currentVehicle] : null;
-            if (fr != null)
-                GUI.DrawTexture(new Rect(p.x + w - 132f, y, 116f, 80f), fr.texture, ScaleMode.ScaleToFit);
-
-            int dataW = (int)(w - 156f);
-            string vName = VehicleName(s.currentVehicle);
-            GUI.Label(new Rect(x, y, dataW, 18f), $"当前：{vName}", _text); y += 22f;
-
+            float k = UIHelper.Scale;
             var cfg = GameConfig.Instance;
             var vc = cfg?.vehicles?.FirstOrDefault(v => v.id == s.currentVehicle);
-            int trackCount = (vc != null) ? vc.upgradeTracks.Count : 2;
+
+            float w = 400f * k;
+            float pad = 14f * k;
+            float lineH = 24f * k;   // 13px 行
+            float rowH = 22f * k;    // 12px 行
+            float btnH = 28f * k;
+            int trackCount = (vc != null && vc.upgradeTracks != null) ? vc.upgradeTracks.Count : 2;
+
+            // 内容高度：标题 + 车辆行 + 每线（信息行+成本行+等级条+按钮）×2 + 库存行 + 关闭按钮
+            float content = 26f * k + lineH
+                + trackCount * (lineH + rowH + 8f * k + 4f * k + btnH + 8f * k)
+                + lineH + 8f * k + btnH;
+            float h = content + pad * 2f;
+            float x = Screen.width - w - 20f * k; // 右侧垂直居中（与 K 小人面板错位，避免同开遮挡）
+            float y = (Screen.height - h) / 2f;
+
+            UIHelper.DrawRect(new Rect(x, y, w, h), UIHelper.C_Panel);
+            UIHelper.DrawBorder(x, y, w, h, UIHelper.C_Cyan);
+
+            // 肖像（右上）
+            var fr = _vehFrames.Length > (int)s.currentVehicle ? _vehFrames[(int)s.currentVehicle] : null;
+            if (fr != null)
+                GUI.DrawTexture(new Rect(x + w - pad - 116f * k, y + pad + 24f * k, 116f * k, 80f * k),
+                    fr.texture, ScaleMode.ScaleToFit);
+
+            float dataW = w - pad * 2f - 128f * k; // 数据列（给肖像留位）
+            float cx = x + pad;
+            float cy = y + pad;
+            GUI.Label(new Rect(cx, cy, dataW, 26f * k), "车辆 · VEHICLE", _title);
+            cy += 26f * k;
+
+            GUI.Label(new Rect(cx, cy, dataW, lineH), $"当前：{VehicleName(s.currentVehicle)}", _text);
+            cy += lineH;
+
             for (int t = 0; t < trackCount; t++)
             {
                 string tName = (vc != null && t < vc.upgradeTracks.Count) ? vc.upgradeTracks[t].trackName : $"改装线{t}";
                 int flat = (int)s.currentVehicle * 2 + t;
-                int lvl = s.upgradeLevels[flat];
-                if (vs.GetUpgradeCost(s, s.currentVehicle, t, out int pc, out int fc, out bool mx))
-                {
-                    GUI.Label(new Rect(x, y, dataW, 18f),
-                        $"{tName}  Lv{lvl}  下一级: {pc}件 + {fc}蓝", _text);
-                }
-                else
-                {
-                    GUI.Label(new Rect(x, y, dataW, 18f),
-                        $"{tName}  Lv{lvl}  {(mx ? "已满级" : "—")}", _text);
-                }
-                // 等级条
-                var track = new Rect(x, y + 18f, dataW, 8f);
-                Fill(track, new Color(0.08f, 0.11f, 0.15f, 0.95f));
+                int lvl = (s.upgradeLevels != null && flat < s.upgradeLevels.Length) ? s.upgradeLevels[flat] : 0;
                 int maxLv = (vc != null && t < vc.upgradeTracks.Count) ? vc.upgradeTracks[t].maxLevel : 2;
+
+                // 效果说明：引擎=速度加成（已生效）；货箱/油箱=容量类加成（MVP 预留，暂未接入公路数值）
+                string effect = "—";
+                var track = (vc != null && t < vc.upgradeTracks.Count) ? vc.upgradeTracks[t] : null;
+                if (track != null)
+                {
+                    if (track.speedBonusPerLevel != null && track.speedBonusPerLevel.Length > 0)
+                        effect = $"速度 +{vs.GetSpeedBonus(s, s.currentVehicle, t):F2}（每级 +{track.speedBonusPerLevel[0]:F2}）";
+                    else if (track.capacityBonusPerLevel != null && track.capacityBonusPerLevel.Length > 0)
+                        effect = $"容量 +{track.capacityBonusPerLevel.Take(lvl).Sum():F0}（每级 +{track.capacityBonusPerLevel[0]:F0}，预留）";
+                }
+
+                GUI.Label(new Rect(cx, cy, dataW, lineH), $"{tName}　Lv{lvl}/{maxLv}　{effect}", _text);
+                cy += lineH;
+
+                bool can = vs.GetUpgradeCost(s, s.currentVehicle, t, out int pc, out int fc, out bool mx);
+                bool afford = can && s.parts >= pc && s.blueprintFragments >= fc;
+                GUI.Label(new Rect(cx, cy, dataW, rowH),
+                    can ? $"下一级成本：{pc} 零件 + {fc} 蓝图碎片" : (mx ? "已满级" : "—"), _small);
+                cy += rowH;
+
+                // 等级条
+                float barW = dataW;
+                UIHelper.DrawRect(new Rect(cx, cy, barW, 8f * k), UIHelper.C_Dim);
                 float ratio = maxLv > 0 ? (float)lvl / maxLv : 0f;
-                Fill(new Rect(track.x + 1f, track.y + 1f, (track.width - 2f) * ratio, track.height - 2f), new Color(0.13f, 0.83f, 0.93f));
-                y += 34f;
+                if (ratio > 0f) UIHelper.DrawRect(new Rect(cx, cy, barW * ratio, 8f * k), UIHelper.C_Cyan);
+                cy += 8f * k + 4f * k;
+
+                // 升级按钮（满级/资源不足置灰，并说明缺什么）
+                string upText = !can ? (mx ? "已满级" : "无法升级")
+                    : afford ? $"升 级（{pc}件 + {fc}蓝）"
+                    : (s.parts < pc ? $"零件不足（需 {pc}）" : $"蓝图不足（需 {fc}）");
+                GUI.enabled = afford;
+                if (GUI.Button(new Rect(cx, cy, dataW, btnH), upText, afford ? _btn : _btnOff))
+                {
+                    bool ok = vs.TryUpgrade(s, s.currentVehicle, t);
+                    Debug.Log($"[VehicleInfoPanel] 升级 {tName} -> {ok}（剩 零件{s.parts} 蓝{s.blueprintFragments}）");
+                }
+                GUI.enabled = true;
+                cy += btnH + 8f * k;
             }
 
-            float bonus = vs.GetSpeedBonus(s, s.currentVehicle, 0) + vs.GetSpeedBonus(s, s.currentVehicle, 1);
-            GUI.Label(new Rect(x, y, dataW, 18f), $"速度加成合计 +{bonus:F2}", _text); y += 22f;
-            GUI.Label(new Rect(x, y, dataW, 16f), $"零件 {s.parts}    蓝图碎片 {s.blueprintFragments}", _small); y += 18f;
-            GUI.Label(new Rect(x, y, dataW, 16f), "[U] 升级线0  [P] +零件  [B] +蓝图", _small); y += 18f;
-            GUI.Label(new Rect(x, y, dataW, 16f), "[V] 关闭面板", _small);
-        }
-
-        private void Border(Rect p)
-        {
-            var b = new Color(0.13f, 0.83f, 0.93f, 0.85f);
-            Fill(new Rect(p.x, p.y, p.width, 1f), b);
-            Fill(new Rect(p.x, p.yMax - 1f, p.width, 1f), b);
-            Fill(new Rect(p.x, p.y, 1f, p.height), b);
-            Fill(new Rect(p.xMax - 1f, p.y, 1f, p.height), b);
-            Fill(new Rect(p.x, p.y, 46f, 2f), new Color(1f, 0.69f, 0f, 0.95f));
+            GUI.Label(new Rect(cx, cy, dataW, lineH),
+                $"库存：零件 {s.parts}　蓝图碎片 {s.blueprintFragments}", _small);
+            cy += lineH + 8f * k;
+            // 关闭按钮（替代原提示行，与背包页风格统一）
+            if (GUI.Button(new Rect(cx, cy, dataW, btnH), "关闭 (V)", _btn))
+            {
+                show = false;
+                UIHelper.SetInteractive(false);
+            }
         }
 
         private void EnsureStyles()
         {
-            if (_stylesReady) return;
-            var font = Font.CreateDynamicFontFromOSFont(new[] { "Consolas", "Courier New", "Menlo" }, 13);
-            _title = new GUIStyle { font = font, fontSize = 14, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.13f, 0.83f, 0.93f) } };
-            _text = new GUIStyle { font = font, fontSize = 12, normal = { textColor = new Color(0.9f, 0.95f, 1f) } };
-            _small = new GUIStyle { font = font, fontSize = 11, normal = { textColor = new Color(0.7f, 0.78f, 0.88f) } };
+            float k = UIHelper.Scale;
+            if (_stylesReady && Mathf.Abs(k - _k) < 0.001f) return;
+            _k = k;
+            _title = UIHelper.NewLabelStyle((int)(15 * k), UIHelper.C_Cyan, TextAnchor.UpperLeft, true);
+            _text  = UIHelper.NewLabelStyle((int)(13 * k), UIHelper.C_Text);
+            _small = UIHelper.NewLabelStyle((int)(12 * k), UIHelper.C_Text);
+            _hint  = UIHelper.NewLabelStyle((int)(11 * k), UIHelper.C_Muted);
+            _btn   = UIHelper.NewButtonStyle((int)(12 * k), UIHelper.C_Cyan);
+            _btnOff = UIHelper.NewButtonStyle((int)(12 * k), UIHelper.C_Muted);
             _stylesReady = true;
-        }
-
-        private void Fill(Rect r, Color c)
-        {
-            var old = GUI.color; GUI.color = c; GUI.DrawTexture(r, _white); GUI.color = old;
         }
 
         private static string VehicleName(VehicleId id)

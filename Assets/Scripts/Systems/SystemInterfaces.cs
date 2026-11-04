@@ -33,6 +33,8 @@ namespace DesktopDoomsday.Systems
     {
         void Tick(GameState state, float deltaSeconds);
         bool IsWeakened(GameState state);
+        /// <summary>手动补给（Batch 8 反馈）：按库存消耗 food/water/medicine 把三项需求各补满一次。返回是否实际消耗了物资。</summary>
+        bool FillAllNeeds(GameState state);
     }
 
     public interface IWeatherSystem

@@ -57,7 +57,7 @@ namespace DesktopDoomsday.UI
 
             float k = UIHelper.Scale;
             float w = 460f * k;
-            float h = (96f + total * 54f + 16f) * k;
+            float h = (108f + total * 58f + 16f) * k;
             float x = (Screen.width - w) / 2f;
             float y = (Screen.height - h) / 2f;
             UIHelper.DrawRect(new Rect(x, y, w, h), UIHelper.C_Panel);
@@ -65,10 +65,10 @@ namespace DesktopDoomsday.UI
 
             float cx = x + 16f * k;
             float cy = y + 14f * k;
-            GUI.Label(new Rect(cx, cy, w - 32f * k, 24f * k), $"成就图鉴  {unlocked}/{total}", _title);
-            cy += 30f * k;
-            GUI.Label(new Rect(cx, cy, w - 32f * k, 18f * k), "达成条件后自动解锁，进度随存档保存。", _small);
-            cy += 24f * k;
+            GUI.Label(new Rect(cx, cy, w - 32f * k, 26f * k), $"成就图鉴  {unlocked}/{total}", _title);
+            cy += 32f * k;
+            GUI.Label(new Rect(cx, cy, w - 32f * k, 22f * k), "达成条件后自动解锁，进度随存档保存。", _small);
+            cy += 28f * k;
 
             if (cfg != null && cfg.achievements != null)
             {
@@ -76,13 +76,13 @@ namespace DesktopDoomsday.UI
                 {
                     bool got = s.unlockedAchievementIds.Contains(a.id);
                     string name = string.IsNullOrEmpty(a.displayName) ? a.id : a.displayName;
-                    GUI.Label(new Rect(cx, cy, w - 120f * k, 22f * k), (got ? "★ " : "☆ ") + name, got ? _head : _label);
-                    GUI.Label(new Rect(cx, cy + 20f * k, w - 120f * k, 18f * k),
+                    GUI.Label(new Rect(cx, cy, w - 120f * k, 25f * k), (got ? "★ " : "☆ ") + name, got ? _head : _label);
+                    GUI.Label(new Rect(cx, cy + 23f * k, w - 120f * k, 22f * k),
                         string.IsNullOrEmpty(a.description) ? $"条件: {a.conditionType}≥{a.parameter}" : a.description,
                         got ? _small : _lock);
-                    GUI.Label(new Rect(x + w - 96f * k, cy + 4f * k, 80f * k, 22f * k),
+                    GUI.Label(new Rect(x + w - 96f * k, cy + 4f * k, 80f * k, 25f * k),
                         got ? "已解锁" : "未解锁", got ? _head : _lock);
-                    cy += 54f * k;
+                    cy += 58f * k;
                 }
             }
 

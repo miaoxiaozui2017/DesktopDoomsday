@@ -50,7 +50,7 @@ namespace DesktopDoomsday.UI
             EnsureStyles();
             if (!_open) return;
             float k = UIHelper.Scale;
-            float w = 540f * k, h = 470f * k;
+            float w = 540f * k, h = 440f * k;
             float x = (Screen.width - w) / 2f;
             float y = (Screen.height - h) / 2f;
             UIHelper.DrawRect(new Rect(x, y, w, h), UIHelper.C_Panel);
@@ -61,36 +61,36 @@ namespace DesktopDoomsday.UI
             _scroll = GUILayout.BeginScrollView(_scroll, GUILayout.Height(h - 80f * k));
 
             GUILayout.Label("【玩法】", _head);
-            GUILayout.Label("这是一款桌面放置游戏。你的小车会沿末日公路自动前进，挂机即可累积里程与资源：" +
-                "沿途随机出现宝箱补充物资；小人会消耗食物/水/药品，需求过低会虚弱降速（但不会死亡）；" +
-                "天气与区域会改变车速与消耗；偶遇副本，可选择分支获取数倍挂机收益与蓝图碎片；" +
-                "离线期间也会按约 0.5 倍速率继续推进，回来可领取离线收益；达成里程/宝箱/副本/区域等条件解锁成就。", _wrap);
+            GUILayout.Label("这是一款桌面放置游戏。你的小车沿末日公路自动前进，挂机累积里程与资源。" +
+                "沿途宝箱补充物资（物资有限，掉落随机，要精打细算）；小人消耗食物/水/药品，需求过低会虚弱降速（但不会死亡）。" +
+                "蓝图碎片主要来自副本分支奖励——挂机宝箱不掉蓝图、零件也极少；想升级改装引擎/货箱，就多接副本。" +
+                "开箱有几率遭遇怪物：前期城郊+晴天几乎遇不到，越往后的区域（荒漠/冻原）风险越高；遇怪会扣小人三项属性（钳制不为零，不会死），补给充足时可「一键补满」恢复。" +
+                "天气与区域改变车速、消耗与遇怪风险；离线按 0.5 倍速率推进（零件每 2 小时至多 +1、蓝图零产出）；" +
+                "达成里程/宝箱/副本/区域等条件解锁成就。", _wrap);
             GUILayout.Space(6f * k);
 
             GUILayout.Label("【如何退出】", _head);
-            GUILayout.Label("方式一：右下角托盘图标 → 右键 → 「退出」。\n方式二：聚焦游戏窗口后按 Alt+F4。", _wrap);
+            GUILayout.Label("方式一：左下角状态面板的「退出」按钮（推荐）。\n方式二：如果 UI 卡死无法点击，按 Alt+F4 强制退出。", _wrap);
             GUILayout.Space(6f * k);
 
             GUILayout.Label("【正式快捷键】", _head);
-            GUILayout.Label("I　打开/关闭 背包（物资详情）\n" +
+            GUILayout.Label("I　打开/关闭 背包（物资详情 + 一键补满）\n" +
                             "A　打开/关闭 成就图鉴\n" +
                             "H　打开/关闭 本帮助页\n" +
-                            "T　切换窗口置顶（默认不置顶，仅浮在桌面背景之上）\n" +
+                            "K　打开/关闭 小人属性页（含「一键补满」按钮，按库存补满食/水/药）\n" +
+                            "V　打开/关闭 车辆属性页（含引擎/货箱改装「升级」按钮）\n" +
                             "Ctrl+Shift+D　切换点击穿透（默认开启，鼠标可穿过窗口操作后方应用）", _key);
             GUILayout.Space(6f * k);
 
             GUILayout.Label("【调试快捷键（开发用）】", _head);
             GUILayout.Label("~　开关调试 HUD\n" +
-                            "U　当前车辆升级一档\n" +
-                            "P　+20 零件　B　+5 蓝图\n" +
-                            "D　强制触发副本　C　以分支0完成副本\n" +
-                            "K　小人属性页　V　车辆属性页", _key);
+                            "D　强制触发副本　C　以分支0完成副本", _key);
             GUILayout.Space(6f * k);
 
             GUILayout.Label("【窗口与图层】", _head);
             GUILayout.Label("默认窗口仅位于桌面背景之上，不会遮挡其它应用窗口；" +
                 "需要点击游戏内按钮/面板时，对应面板会自动临时转为可交互并提到前台，关闭后自动恢复。" +
-                "若想让它始终盖在其它窗口之上，按 T 切换为置顶模式。", _wrap);
+                "副本出现时会自动切到可操作状态（提前台 + 可点击），选择分支或超时后自动恢复挂机穿透态，无需手动切换。", _wrap);
             GUILayout.Space(6f * k);
 
             GUILayout.Label("【重置存档】", _head);

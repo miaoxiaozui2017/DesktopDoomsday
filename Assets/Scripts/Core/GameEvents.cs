@@ -15,6 +15,7 @@ namespace DesktopDoomsday.Core
         public ChestType type;
         public List<ResourceDelta> rewards;
         public int blueprintFragments;
+        public bool monsterEncounter; // 开箱遭遇怪物（扣三需求，属性钳制≥1 不致死，仅可能进虚弱）
     }
 
     public struct DungeonResult
